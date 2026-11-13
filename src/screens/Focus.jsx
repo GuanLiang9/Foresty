@@ -230,7 +230,7 @@ export default function Focus({ onSettings, go }) {
   const stopwatchEnd = () => (elapsed >= MIN_SW ? end(true) : end(false, undefined, 'short'));
 
   return (
-    <div className={`flex h-full flex-col px-5 pt-[calc(env(safe-area-inset-top)+14px)] ${a ? 'pb-[calc(env(safe-area-inset-bottom)+20px)]' : 'pb-[calc(env(safe-area-inset-bottom)+92px)]'}`}>
+    <div className={`flex h-full flex-col px-5 pt-[calc(env(safe-area-inset-top)+14px)] ${a ? 'pb-[calc(env(safe-area-inset-bottom)+20px)]' : 'pb-[calc(env(safe-area-inset-bottom)+92px)] short:pb-[calc(env(safe-area-inset-bottom)+84px)]'}`}>
       <header className={`flex items-center justify-between transition-all duration-700 ${a ? 'pointer-events-none -translate-y-3 opacity-0' : ''}`}>
         <div className="glass flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold">
           <Flame size={16} className={streak ? 'text-orange-400' : 'text-white/30'} fill={streak ? 'currentColor' : 'none'} />
@@ -244,7 +244,7 @@ export default function Focus({ onSettings, go }) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 short:gap-2">
         <div className="flex h-9 items-center">
           {a ? (
             <p key={Math.floor(elapsed / 45) % PHRASES.length} className="anim-rise text-center text-sm text-white/55">{PHRASES[Math.floor(elapsed / 45) % PHRASES.length]}</p>
@@ -256,7 +256,7 @@ export default function Focus({ onSettings, go }) {
           )}
         </div>
 
-        <div className="w-[min(80vw,38dvh,340px)]">
+        <div className="dial-size">
           <Dial frac={frac} knob={!a && timer} onChange={!a && timer ? setFrac : null} live={!!a}>
             <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% 0%, #12271f 0%, #0a1512 55%, #060c0a 100%)' }} />
             <div className="absolute inset-0 transition-opacity duration-1000" style={{ opacity: a ? 0.2 + 0.8 * progress : 0.55, background: 'radial-gradient(90% 75% at 50% 105%, rgba(52,211,153,.45), rgba(34,211,238,.14) 45%, transparent 75%)' }} />
@@ -272,8 +272,8 @@ export default function Focus({ onSettings, go }) {
         </div>
 
         <div className="text-center">
-          <div className="tnum text-[68px] font-semibold leading-none tracking-tighter">{time}</div>
-          <div className="mt-2 flex h-5 items-center justify-center gap-2 text-xs text-white/45">
+          <div className="tnum text-[68px] font-semibold short:text-[52px] leading-none tracking-tighter">{time}</div>
+          <div className="mt-2 flex h-5 items-center justify-center gap-2 text-xs short:mt-1 text-white/45">
             {a ? (
               <>
                 <span className="h-2 w-2 rounded-full" style={{ background: tag.color }} />{tag.name}
@@ -285,18 +285,18 @@ export default function Focus({ onSettings, go }) {
         </div>
 
         {!a && (
-          <div className="flex w-full max-w-sm flex-col gap-2.5">
+          <div className="flex w-full max-w-sm flex-col gap-2.5 short:gap-2">
             <div className="flex gap-2.5">
-              <button onClick={() => setSheet('tag')} className="glass press flex h-12 flex-1 items-center gap-2.5 rounded-2xl px-4 text-sm">
+              <button onClick={() => setSheet('tag')} className="glass press flex h-12 flex-1 items-center gap-2.5 rounded-2xl px-4 text-sm short:h-11">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: tag.color, boxShadow: `0 0 10px ${tag.color}` }} />
                 <span className="flex-1 truncate text-left font-medium">{tag.name}</span><ChevronRight size={15} className="text-white/30" />
               </button>
-              <button onClick={() => setSheet('species')} className="glass press flex h-12 flex-1 items-center gap-2 rounded-2xl px-3 text-sm">
+              <button onClick={() => setSheet('species')} className="glass press flex h-12 flex-1 items-center gap-2 rounded-2xl px-3 text-sm short:h-11">
                 <Plant species={s.selected} sway={false} lite className="h-8 w-7" />
                 <span className="flex-1 truncate text-left font-medium">{SP[s.selected].name}</span><ChevronRight size={15} className="text-white/30" />
               </button>
             </div>
-            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={60} placeholder="What are you growing toward?" enterKeyHint="done" className="glass h-12 w-full rounded-2xl px-4 text-sm outline-none placeholder:text-white/30 focus:border-emerald-300/40" />
+            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={60} placeholder="What are you growing toward?" enterKeyHint="done" className="glass h-12 w-full shrink-0 rounded-2xl px-4 text-sm outline-none short:h-11 placeholder:text-white/30 focus:border-emerald-300/40" />
           </div>
         )}
       </div>
@@ -311,7 +311,7 @@ export default function Focus({ onSettings, go }) {
               : <Hold onDone={() => (timer ? end(false, undefined, 'quit') : stopwatchEnd())}>Hold to give up</Hold>}
         </div>
       ) : (
-        <button onClick={plant} className="cta mx-auto h-[60px] w-full max-w-sm rounded-full text-lg font-semibold tracking-tight">Plant</button>
+        <button onClick={plant} className="cta mx-auto h-[60px] w-full max-w-sm shrink-0 rounded-full text-lg short:h-[52px] font-semibold tracking-tight">Plant</button>
       )}
 
       <Sheet open={sheet === 'tag'} onClose={() => setSheet(null)} title="Focus on">

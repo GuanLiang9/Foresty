@@ -97,3 +97,9 @@ input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; bo
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* The focus dial takes whatever height is left after the fixed controls, so nothing overlaps on short phones. */
+.dial-size { width: min(80vw, 340px, max(120px, calc(100dvh - 530px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))); }
+@media (max-height: 720px) {
+  .dial-size { width: min(80vw, 340px, max(120px, calc(100dvh - 445px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))); }
+}
