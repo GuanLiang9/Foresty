@@ -15,6 +15,7 @@ export default function Shop() {
   const act = () => {
     if (using) return;
     if (owned) { select(view); haptic(8); return; }
+    if (sp.exclusive) { toast('Earned from challenges in Journey'); return; }
     const unlocked = buy(view);
     if (!unlocked) { toast(`${short} more coins to go`); haptic(40); return; }
     sfx('done'); haptic([20, 40, 60]);
@@ -42,13 +43,13 @@ export default function Shop() {
         </div>
         <div className="relative mt-3 flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <div className={`text-[11px] font-semibold uppercase tracking-[.25em] ${RARITY[sp.rarity]}`}>{sp.rarity}</div>
+            <div className={`text-[11px] font-semibold uppercase tracking-[.25em] ${RARITY[sp.rarity]}`}>{sp.rarity} · {sp.min} min</div>
             <div className="mt-1 text-2xl font-semibold tracking-tight">{sp.name}</div>
             <div className="mt-1 text-sm leading-snug text-white/50">{sp.blurb}</div>
           </div>
         </div>
-        <button onClick={act} className={`relative mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-semibold ${using ? 'bg-white/5 text-white/40' : owned || short <= 0 ? 'cta' : 'press border border-white/10 bg-white/5 text-white/60'}`}>
-          {using ? <><Check size={18} /> Planting this</> : owned ? 'Plant this' : <>{short > 0 && <Lock size={15} />} Unlock · <Coin /> {sp.price}</>}
+        <button onClick={act} className={`relative mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-semibold ${using ? 'bg-white/5 text-white/40' : owned || (!sp.exclusive && short <= 0) ? 'cta' : 'press border border-white/10 bg-white/5 text-white/60'}`}>
+          {using ? <><Check size={18} /> Planting this</> : owned ? 'Plant this' : sp.exclusive ? 'Earned in challenges' : <>{short > 0 && <Lock size={15} />} Unlock · <Coin /> {sp.price}</>}
         </button>
       </div>
 
@@ -59,7 +60,7 @@ export default function Shop() {
             <button key={x.id} onClick={() => { setView(x.id); haptic(5); }} className={`anim-rise press relative flex flex-col items-center rounded-2xl border p-1.5 pb-2 ${view === x.id ? 'border-emerald-300/60 bg-emerald-300/10' : 'border-white/[.07] bg-white/[.03]'}`} style={{ animationDelay: `${0.1 + i * 0.025}s` }}>
               <Plant species={x.id} sway={false} lite className={`h-16 w-full transition ${have ? '' : 'opacity-45 saturate-50'}`} />
               <span className="tnum mt-0.5 flex h-4 items-center gap-1 text-[10px] font-medium text-white/50">
-                {s.selected === x.id ? <Check size={11} className="text-emerald-300" /> : have ? 'Owned' : <><Coin size={10} />{x.price}</>}
+                {s.selected === x.id ? <Check size={11} className="text-emerald-300" /> : have ? `${x.min} min` : x.exclusive ? 'Event' : <><Coin size={10} />{x.price}</>}
               </span>
             </button>
           );

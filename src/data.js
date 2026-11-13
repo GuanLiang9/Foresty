@@ -4,23 +4,32 @@ export const APP = 'Evergrove';
 const P = (a, b, c, t, x) => ({ a, b, c, t, x });
 
 export const SPECIES = [
-  { id: 'oak', name: 'Elder Oak', kind: 'round', price: 0, rarity: 'Common', pal: P('#6ee7b7', '#34d399', '#059669', '#7a5a45', '#a7f3d0'), blurb: 'Steady and patient. Yours from day one.' },
-  { id: 'pine', name: 'North Pine', kind: 'pine', price: 0, rarity: 'Common', pal: P('#5eead4', '#14b8a6', '#0f766e', '#6b4f3d', '#ccfbf1'), blurb: 'Grows straight up, like a good morning.' },
-  { id: 'sun', name: 'Sunbloom', kind: 'flower', price: 60, rarity: 'Common', pal: P('#fde68a', '#fbbf24', '#22c55e', '#16a34a', '#92400e'), blurb: 'Turns to face whatever you focus on.' },
-  { id: 'cactus', name: 'Dune Cactus', kind: 'cactus', price: 120, rarity: 'Common', pal: P('#86efac', '#22c55e', '#15803d', '#15803d', '#fb7185'), blurb: 'Thrives on long, dry stretches of work.' },
-  { id: 'blossom', name: 'Dawn Blossom', kind: 'round', dots: true, price: 200, rarity: 'Rare', pal: P('#fbcfe8', '#f9a8d4', '#ec4899', '#5b4038', '#fff1f2'), blurb: 'Blooms once the hard part is behind you.' },
-  { id: 'bamboo', name: 'Jade Bamboo', kind: 'bamboo', price: 280, rarity: 'Rare', pal: P('#bef264', '#84cc16', '#4d7c0f', '#65a30d', '#ecfccb'), blurb: 'Quiet for a while, then all at once.' },
-  { id: 'palm', name: 'Lagoon Palm', kind: 'palm', price: 380, rarity: 'Rare', pal: P('#6ee7b7', '#10b981', '#047857', '#a16207', '#78350f'), blurb: 'For work that deserves a holiday after.' },
-  { id: 'maple', name: 'Ember Maple', kind: 'round', price: 500, rarity: 'Rare', pal: P('#fdba74', '#f97316', '#c2410c', '#57382b', '#ffedd5'), blurb: 'Burns bright through the late hours.' },
-  { id: 'willow', name: 'Moon Willow', kind: 'willow', price: 650, rarity: 'Epic', pal: P('#a5f3fc', '#5eead4', '#0d9488', '#64748b', '#ecfeff'), blurb: 'Bends, never breaks. Neither do you.' },
-  { id: 'shroom', name: 'Glowcap', kind: 'shroom', price: 850, rarity: 'Epic', pal: P('#ddd6fe', '#8b5cf6', '#6d28d9', '#ede9fe', '#67e8f9'), blurb: 'Lights up when everything else goes dark.' },
-  { id: 'aurora', name: 'Aurora Pine', kind: 'pine', snow: true, price: 1100, rarity: 'Epic', pal: P('#67e8f9', '#6366f1', '#3730a3', '#475569', '#e0f2fe'), blurb: 'Carries a little of the northern sky.' },
-  { id: 'prism', name: 'Prism Spire', kind: 'crystal', price: 1600, rarity: 'Legendary', pal: P('#a5f3fc', '#22d3ee', '#7c3aed', '#1e293b', '#f0abfc'), blurb: 'Attention, crystallised.' },
-  { id: 'spirit', name: 'Spirit Tree', kind: 'round', dots: true, price: 2400, rarity: 'Legendary', pal: P('#ecfeff', '#a5f3fc', '#38bdf8', '#e2e8f0', '#ffffff'), blurb: 'Only the most devoted keepers ever see one.' },
+  { id: 'oak', min: 25, name: 'Elder Oak', kind: 'round', price: 0, rarity: 'Common', pal: P('#6ee7b7', '#34d399', '#059669', '#7a5a45', '#a7f3d0'), blurb: 'Steady and patient. Yours from day one.' },
+  { id: 'pine', min: 10, name: 'North Pine', kind: 'pine', price: 0, rarity: 'Common', pal: P('#5eead4', '#14b8a6', '#0f766e', '#6b4f3d', '#ccfbf1'), blurb: 'Grows straight up, like a good morning.' },
+  { id: 'sun', min: 15, name: 'Sunbloom', kind: 'flower', price: 60, rarity: 'Common', pal: P('#fde68a', '#fbbf24', '#22c55e', '#16a34a', '#92400e'), blurb: 'Turns to face whatever you focus on.' },
+  { id: 'cactus', min: 20, name: 'Dune Cactus', kind: 'cactus', price: 120, rarity: 'Common', pal: P('#86efac', '#22c55e', '#15803d', '#15803d', '#fb7185'), blurb: 'Thrives on long, dry stretches of work.' },
+  { id: 'blossom', min: 40, name: 'Dawn Blossom', kind: 'round', dots: true, price: 200, rarity: 'Rare', pal: P('#fbcfe8', '#f9a8d4', '#ec4899', '#5b4038', '#fff1f2'), blurb: 'Blooms once the hard part is behind you.' },
+  { id: 'bamboo', min: 30, name: 'Jade Bamboo', kind: 'bamboo', price: 280, rarity: 'Rare', pal: P('#bef264', '#84cc16', '#4d7c0f', '#65a30d', '#ecfccb'), blurb: 'Quiet for a while, then all at once.' },
+  { id: 'palm', min: 45, name: 'Lagoon Palm', kind: 'palm', price: 380, rarity: 'Rare', pal: P('#6ee7b7', '#10b981', '#047857', '#a16207', '#78350f'), blurb: 'For work that deserves a holiday after.' },
+  { id: 'maple', min: 60, name: 'Ember Maple', kind: 'round', price: 500, rarity: 'Rare', pal: P('#fdba74', '#f97316', '#c2410c', '#57382b', '#ffedd5'), blurb: 'Burns bright through the late hours.' },
+  { id: 'willow', min: 75, name: 'Moon Willow', kind: 'willow', price: 650, rarity: 'Epic', pal: P('#a5f3fc', '#5eead4', '#0d9488', '#64748b', '#ecfeff'), blurb: 'Bends, never breaks. Neither do you.' },
+  { id: 'shroom', min: 90, name: 'Glowcap', kind: 'shroom', price: 850, rarity: 'Epic', pal: P('#ddd6fe', '#8b5cf6', '#6d28d9', '#ede9fe', '#67e8f9'), blurb: 'Lights up when everything else goes dark.' },
+  { id: 'aurora', min: 120, name: 'Aurora Pine', kind: 'pine', snow: true, price: 1100, rarity: 'Epic', pal: P('#67e8f9', '#6366f1', '#3730a3', '#475569', '#e0f2fe'), blurb: 'Carries a little of the northern sky.' },
+  { id: 'prism', min: 150, name: 'Prism Spire', kind: 'crystal', price: 1600, rarity: 'Legendary', pal: P('#a5f3fc', '#22d3ee', '#7c3aed', '#1e293b', '#f0abfc'), blurb: 'Attention, crystallised.' },
+  { id: 'spirit', min: 180, name: 'Spirit Tree', kind: 'round', dots: true, price: 2400, rarity: 'Legendary', pal: P('#ecfeff', '#a5f3fc', '#38bdf8', '#e2e8f0', '#ffffff'), blurb: 'Only the most devoted keepers ever see one.' },
+  // Exclusive species are never sold; they are earned from monthly challenges and seasonal events.
+  { id: 'lantern', min: 35, name: 'Lantern Maple', kind: 'round', dots: true, exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fde68a', '#f87171', '#b91c1c', '#4a2c2a', '#fef3c7'), blurb: 'Hung with small lights for those who kept going.' },
+  { id: 'tide', min: 50, name: 'Tide Palm', kind: 'palm', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#bae6fd', '#38bdf8', '#0369a1', '#94a3b8', '#f0f9ff'), blurb: 'Comes in slowly, the way good months do.' },
+  { id: 'rose', min: 20, name: 'Rose Cactus', kind: 'cactus', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fecdd3', '#fb7185', '#be123c', '#be123c', '#fef08a'), blurb: 'Soft colour, stubborn heart.' },
+  { id: 'petal', min: 40, name: 'Petal Willow', kind: 'willow', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fbcfe8', '#f472b6', '#be185d', '#6b4f4f', '#fff1f2'), blurb: 'Only flowers during Spring Bloom.' },
+  { id: 'sunspire', min: 100, name: 'Sun Spire', kind: 'crystal', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fef08a', '#fbbf24', '#ea580c', '#292524', '#fde047'), blurb: 'A shard of the longest day.' },
+  { id: 'star', min: 55, name: 'Starpine', kind: 'pine', snow: true, exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fde68a', '#1d4ed8', '#1e3a8a', '#334155', '#fef9c3'), blurb: 'Catches the first cold stars of Ember Days.' },
+  { id: 'frost', min: 70, name: 'Frostcap', kind: 'shroom', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#e0f2fe', '#7dd3fc', '#0284c7', '#f1f5f9', '#bae6fd'), blurb: 'Glows under the Winter Lights.' },
 ];
+export const BUYABLE = SPECIES.filter((s) => !s.exclusive);
 export const SP = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
 
-export const RARITY = { Common: 'text-white/50', Rare: 'text-cyan-300', Epic: 'text-violet-300', Legendary: 'text-amber-300' };
+export const RARITY = { Common: 'text-white/50', Rare: 'text-cyan-300', Epic: 'text-violet-300', Legendary: 'text-amber-300', Exclusive: 'text-rose-300' };
 
 export const TAGS = [
   { id: 'work', name: 'Work', color: '#34d399' },
@@ -33,13 +42,27 @@ export const TAGS = [
 export const TAG_COLORS = ['#f87171', '#60a5fa', '#4ade80', '#e879f9', '#fbbf24', '#2dd4bf', '#818cf8'];
 
 export const SOUNDS = [
-  { id: 'rain', name: 'Rain' },
-  { id: 'wind', name: 'Canopy wind' },
-  { id: 'waves', name: 'Shoreline' },
-  { id: 'fire', name: 'Campfire' },
-  { id: 'night', name: 'Night crickets' },
-  { id: 'deep', name: 'Deep hum' },
+  { id: 'rain', name: 'Rain', price: 0 },
+  { id: 'wind', name: 'Canopy wind', price: 0 },
+  { id: 'deep', name: 'Deep hum', price: 0 },
+  { id: 'waves', name: 'Shoreline', price: 40 },
+  { id: 'fire', name: 'Campfire', price: 60 },
+  { id: 'night', name: 'Night crickets', price: 60 },
+  { id: 'stream', name: 'Mountain stream', price: 90 },
+  { id: 'bowls', name: 'Singing bowls', price: 120 },
 ];
+export const FREE_SOUNDS = SOUNDS.filter((s) => !s.price).map((s) => s.id);
+
+// Monthly challenge: the reward rotates through these species.
+export const MONTHLY = { goal: 900, rewards: ['lantern', 'tide', 'rose'] };
+// Seasonal events repeat every year. from/to are [month, day], inclusive.
+export const EVENTS = [
+  { id: 'spring', name: 'Spring Bloom', from: [3, 10], to: [4, 10], goal: 12, reward: 'petal' },
+  { id: 'summer', name: 'Midsummer', from: [6, 10], to: [7, 10], goal: 12, reward: 'sunspire' },
+  { id: 'ember', name: 'Ember Days', from: [11, 5], to: [11, 30], goal: 12, reward: 'star' },
+  { id: 'winter', name: 'Winter Lights', from: [12, 5], to: [12, 31], goal: 12, reward: 'frost' },
+];
+export const DUPLICATE_REWARD = 300;
 
 export const PHRASES = [
   'Roots grow in the quiet.',
@@ -72,7 +95,7 @@ export const ACHIEVEMENTS = [
   { id: 'night', name: 'Night Shift', desc: 'Finish after 10pm', reward: 20, test: (L) => L.night },
   { id: 'gold', name: 'Golden Hour', desc: 'Find a golden bloom', reward: 30, test: (L) => L.golden >= 1 },
   { id: 'col5', name: 'Curator', desc: 'Own 5 species', reward: 40, test: (L) => L.species >= 5 },
-  { id: 'colall', name: 'Botanist', desc: 'Own every species', reward: 500, test: (L) => L.species >= SPECIES.length },
+  { id: 'colall', name: 'Botanist', desc: 'Own every Nursery species', reward: 500, test: (L) => L.buyable >= BUYABLE.length },
 ];
 
 // One quest is drawn from each slot every day.

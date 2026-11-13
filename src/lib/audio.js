@@ -74,6 +74,22 @@ const BUILD = {
     }, 950);
     return { nodes: [o, bed, lfo(55, 0.5, trem.gain)], timers: [t] };
   },
+  stream(out) {
+    const a = src(white), f = bq('bandpass', 1900, 0.9), g = gn(0.2);
+    chain(a, bq('highpass', 700), f, g, out);
+    return { nodes: [a, lfo(2.7, 380, f.frequency), lfo(0.31, 0.07, g.gain)] };
+  },
+  bowls(out) {
+    const nodes = [];
+    [[174.6, 0.05], [261.6, 0.07], [392, 0.11], [523.3, 0.04]].forEach(([f, r]) => {
+      const o = ctx.createOscillator(), g = gn(0.05);
+      o.frequency.value = f;
+      o.start();
+      chain(o, g, out);
+      nodes.push(o, lfo(r, 0.045, g.gain));
+    });
+    return { nodes };
+  },
   deep(out) {
     const a = src(brown);
     chain(a, bq('lowpass', 180), gn(1.6), out);

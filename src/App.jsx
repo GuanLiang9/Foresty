@@ -34,7 +34,7 @@ function Welcome() {
       <h1 className="anim-rise relative mt-4 text-5xl font-semibold tracking-tighter" style={{ animationDelay: '.3s' }}>{APP}</h1>
       <p className="anim-rise relative mt-3 text-white/55" style={{ animationDelay: '.45s' }}>Put the phone down. Grow something.</p>
       <div className="relative mt-8 w-full max-w-xs space-y-3 text-left text-sm text-white/70">
-        {['Set a timer and plant a seed.', 'Stay focused and it grows. Leave and it withers.', 'Every session adds to a grove that is only yours.'].map((t, i) => (
+        {['Pick a tree. Its time is your timer.', 'Stay focused and it grows. Leave and it withers.', 'Every session adds to a grove that is only yours.'].map((t, i) => (
           <div key={i} className="anim-rise flex gap-3" style={{ animationDelay: `${0.6 + i * 0.12}s` }}><span className="tnum mt-px text-emerald-300">0{i + 1}</span>{t}</div>
         ))}
       </div>
@@ -76,6 +76,7 @@ function Settings({ open, onClose }) {
       <Row title="Keep screen awake" desc="Stops the phone locking mid-session, so Deep Focus is fair."><Toggle on={c.awake} onChange={(v) => setSetting('awake', v)} /></Row>
       <Row title="Daily goal"><Stepper value={c.goal} min={15} max={480} step={15} unit="min" onChange={(v) => setSetting('goal', v)} /></Row>
       <Row title="Break length"><Stepper value={c.breakMin} min={1} max={30} step={1} unit="min" onChange={(v) => setSetting('breakMin', v)} /></Row>
+      <Row title="Auto-start after break" desc="The next session begins as soon as a break ends."><Toggle on={c.auto} onChange={(v) => setSetting('auto', v)} /></Row>
       <Row title="Chimes"><Toggle on={c.sfx} onChange={(v) => setSetting('sfx', v)} /></Row>
       <Row title="Haptics" desc="Android only. iOS does not expose vibration to web apps."><Toggle on={c.haptics} onChange={(v) => setSetting('haptics', v)} /></Row>
       {canNotify && (
@@ -104,7 +105,7 @@ function Settings({ open, onClose }) {
 export default function App() {
   const s = useStore();
   const [tab, setTab] = useState('focus'), [settings, setSettings] = useState(false);
-  const busy = !!s.active, cur = busy ? 'focus' : tab, idx = TABS.findIndex((t) => t[0] === cur);
+  const busy = !!s.active, cur = busy || s.harvest ? 'focus' : tab, idx = TABS.findIndex((t) => t[0] === cur);
 
   useEffect(() => {
     const run = () => { if (document.hidden) return; const used = rollover(); if (used) toast(`Streak shield used · ${used} day${used > 1 ? 's' : ''} covered`); };

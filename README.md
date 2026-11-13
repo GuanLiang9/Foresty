@@ -27,13 +27,17 @@ Installing a PWA needs HTTPS, so host the build. The included workflow deploys t
 
 | Area | Details |
 | --- | --- |
-| Focus | Timer (5–180 min, drag the dial) and stopwatch modes, tags, a one-line intention, 10-second cancel window, hold-to-give-up |
+| Plant a tree | Every species has a fixed focus time (10–180 min); rarer trees ask for longer. Pick the tree, finish its time, it is planted |
+| Free focus | Open-ended stopwatch. Stop after 10 min and spend the minutes on any mix of owned trees; leftover minutes still earn coins |
+| Session controls | Tags, a one-line intention, 10-second cancel window, pause (5 min total per session), hold-to-give-up, optional auto-start after a break |
+| Challenges | Monthly 15-hour challenge and four seasonal events, each rewarding a species that cannot be bought |
+| Boosts | 2× coins on the next session, earned by reaching the daily goal or clearing all three daily quests |
 | Deep Focus | Leaving the app for more than 10 seconds withers the plant. Screen wake lock keeps the phone from locking mid-session |
 | Plants | 13 species drawn procedurally in SVG, each growing from seed to maturity; longer sessions grow bigger plants |
 | Rewards | Coins per session, streak bonus, random golden blooms (double coins), unlockable species |
 | Habit loop | Daily streak with purchasable streak shields, daily goal, three rotating daily quests, 17 milestones, levels |
 | Grove | Day / week / month / year islands, focus totals, time-of-day chart, tag breakdown, session timeline |
-| Sound | Six ambient layers (rain, wind, shoreline, campfire, crickets, deep hum) synthesised with Web Audio, mixable |
+| Sound | Eight mixable ambient layers synthesised with Web Audio; three free, five unlocked with coins |
 | Extras | Break timer, completion notifications, JSON backup and restore |
 
 ## Platform limits worth knowing
