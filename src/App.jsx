@@ -5,7 +5,7 @@ import { Sheet, Toggle, Stepper, Toasts, toast } from './components/ui';
 import { useGrowIn } from './lib/hooks';
 import * as audio from './lib/audio';
 import { APP } from './data';
-import { useStore, set, setSetting, rollover, exportData, importData, resetAll, haptic, SPEED } from './store';
+import { useStore, getState, set, setSetting, rollover, exportData, importData, resetAll, haptic, SPEED } from './store';
 import Focus from './screens/Focus';
 import Grove from './screens/Grove';
 import Shop from './screens/Shop';
@@ -113,6 +113,20 @@ export default function App() {
     document.addEventListener('visibilitychange', run);
     return () => document.removeEventListener('visibilitychange', run);
   }, []);
+
+  // While a session or harvest is open, the Android back button must not close the app (that would wither the plant).
+  const locked = busy || !!s.harvest;
+  useEffect(() => {
+    if (!locked) return;
+    history.pushState({ guard: true }, '');
+    const pop = () => {
+      if (history.state?.guard || history.state?.sheet) return;
+      history.pushState({ guard: true }, '');
+      toast(getState().active ? 'Session running. Hold “give up” to leave.' : 'Choose your trees first.');
+    };
+    addEventListener('popstate', pop);
+    return () => { removeEventListener('popstate', pop); if (history.state?.guard) history.back(); };
+  }, [locked]);
 
   return (
     <div className="relative h-full overflow-hidden">

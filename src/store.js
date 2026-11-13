@@ -34,7 +34,17 @@ const defaults = () => ({
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY));
-    if (raw) { const d = defaults(); return { ...d, ...raw, settings: { ...d.settings, ...raw.settings } }; }
+    if (raw) {
+      const d = defaults(), s = { ...d, ...raw, settings: { ...d.settings, ...raw.settings } };
+      // Drop anything that refers to a species or sound this build does not know, so a stale save cannot crash a screen.
+      s.sessions = s.sessions.filter((x) => x && SP[x.species]);
+      s.owned = [...new Set(['oak', 'pine', ...s.owned.filter((id) => SP[id])])];
+      s.ownedSounds = [...new Set([...FREE_SOUNDS, ...s.ownedSounds.filter((id) => SOUNDS.some((x) => x.id === id))])];
+      if (!s.owned.includes(s.selected)) s.selected = 'oak';
+      if (s.active && !SP[s.active.species]) s.active = null;
+      if (!s.tags.length) s.tags = d.tags;
+      return s;
+    }
   } catch {}
   return defaults();
 }
@@ -320,6 +330,14 @@ export function addTag(name) {
   if (!name) return;
   const id = `t${Date.now()}`;
   commit({ ...state, tags: [...state.tags, { id, name, color: TAG_COLORS[state.tags.length % TAG_COLORS.length] }], settings: { ...state.settings, tag: id } });
+}
+
+export const isCustomTag = (id) => !TAGS.some((t) => t.id === id);
+
+export function removeTag(id) {
+  if (!isCustomTag(id)) return;
+  const tags = state.tags.filter((t) => t.id !== id);
+  commit({ ...state, tags, settings: { ...state.settings, tag: state.settings.tag === id ? tags[0].id : state.settings.tag } });
 }
 
 // Runs on launch/resume: resets daily quests and spends shields on missed days.

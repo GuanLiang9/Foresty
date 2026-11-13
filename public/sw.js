@@ -13,7 +13,13 @@ self.addEventListener('activate', (e) => {
 
 // The page reports the hashed assets it loaded so the first visit is enough to go offline.
 self.addEventListener('message', (e) => {
-  if (e.data?.cache) e.waitUntil(caches.open(CACHE).then((c) => Promise.allSettled(e.data.cache.map((u) => c.add(u)))));
+  if (!e.data?.cache) return;
+  const keep = new Set(e.data.cache);
+  e.waitUntil(caches.open(CACHE).then(async (c) => {
+    await Promise.allSettled(e.data.cache.map((u) => c.add(u)));
+    // Hashed bundles from older releases are never requested again; drop them.
+    for (const r of await c.keys()) if (r.url.includes('/assets/') && !keep.has(r.url)) await c.delete(r);
+  }));
 });
 
 self.addEventListener('fetch', (e) => {

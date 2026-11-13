@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Flame, Settings2, Volume2, ShieldCheck, Coffee, Share2, Trophy, CloudRain, Wind, Waves, MoonStar, AudioWaveform, Droplets, Bell, Plus, Minus, ChevronRight, ArrowUp, Pause, Play, Zap, Lock } from 'lucide-react';
+import { Flame, Settings2, Volume2, ShieldCheck, Coffee, Share2, Trophy, CloudRain, Wind, Waves, MoonStar, AudioWaveform, Droplets, Bell, Plus, Minus, ChevronRight, ArrowUp, Pause, Play, Zap, Lock, X } from 'lucide-react';
 import Plant from '../components/Plant';
 import { Sheet, Coin, toast } from '../components/ui';
 import { useSmooth, useGrowIn, useCount } from '../lib/hooks';
 import * as audio from '../lib/audio';
 import { cl, mmss, dur, tier, notify } from '../lib/util';
 import { SP, SOUNDS, PHRASES } from '../data';
-import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, select, addTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW } from '../store';
+import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, select, addTag, removeTag, isCustomTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW } from '../store';
 
 const R = 138, C = 2 * Math.PI * R, MAX_MIN = 180;
 const SOUND_ICON = { rain: CloudRain, wind: Wind, waves: Waves, fire: Flame, night: MoonStar, deep: AudioWaveform, stream: Droplets, bowls: Bell };
@@ -344,7 +344,7 @@ export default function Focus({ onSettings, go }) {
                 </button>
               )}
             </div>
-            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={60} placeholder="What are you growing toward?" enterKeyHint="done" className="glass h-12 w-full shrink-0 rounded-2xl px-4 text-sm outline-none placeholder:text-white/30 focus:border-emerald-300/40 short:h-11" />
+            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={60} placeholder="What are you growing toward?" enterKeyHint="done" onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} className="glass h-12 w-full shrink-0 rounded-2xl px-4 text-sm outline-none placeholder:text-white/30 focus:border-emerald-300/40 short:h-11" />
           </div>
         )}
       </div>
@@ -366,9 +366,12 @@ export default function Focus({ onSettings, go }) {
       <Sheet open={sheet === 'tag'} onClose={() => setSheet(null)} title="Focus on">
         <div className="flex flex-wrap gap-2">
           {s.tags.map((t) => (
-            <button key={t.id} onClick={() => { setSetting('tag', t.id); setSheet(null); }} className={`press flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium ${t.id === cfg.tag ? 'border-white/40 bg-white/10' : 'border-white/10 bg-white/5'}`}>
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.color }} />{t.name}
-            </button>
+            <span key={t.id} className={`flex h-11 items-center rounded-full border text-sm font-medium ${t.id === cfg.tag ? 'border-white/40 bg-white/10' : 'border-white/10 bg-white/5'}`}>
+              <button onClick={() => { setSetting('tag', t.id); setSheet(null); }} className={`press flex h-full items-center gap-2 pl-4 ${isCustomTag(t.id) ? 'pr-1' : 'pr-4'}`}>
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.color }} />{t.name}
+              </button>
+              {isCustomTag(t.id) && <button aria-label={`Remove ${t.name}`} onClick={() => removeTag(t.id)} className="press flex h-full items-center pl-1 pr-3 text-white/35"><X size={14} /></button>}
+            </span>
           ))}
         </div>
         <form onSubmit={(e) => { e.preventDefault(); if (tagName.trim()) { addTag(tagName); setTagName(''); setSheet(null); } }} className="mt-5 flex gap-2">

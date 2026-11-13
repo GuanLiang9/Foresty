@@ -22,7 +22,7 @@ function Island({ list, seed, sel, onPick }) {
   const used = new Set(cells.slice(0, shown.length));
   const mid = TOP + n * B, bot = TOP + 2 * n * B;
   return (
-    <div className="relative mx-auto w-full max-w-sm" style={{ aspectRatio: `${VW}/${VH}` }}>
+    <div className="pointer-events-none relative isolate mx-auto w-full max-w-sm" style={{ aspectRatio: `${VW}/${VH}` }}>
       <svg viewBox={`0 0 ${VW} ${VH}`} className="absolute inset-0 h-full w-full">
         <defs>
           <linearGradient id="dirtL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a3527" /><stop offset="1" stopColor="#120c09" /></linearGradient>
@@ -46,7 +46,7 @@ function Island({ list, seed, sel, onPick }) {
       {plants.map(({ ses, x, y, i, j }, idx) => {
         const w = A * 1.85 * tier(ses.secs / 60), h = w * 1.2;
         return (
-          <button key={ses.id} onClick={() => onPick(ses)} className="anim-pop absolute" style={{ left: `${((x - w / 2) / VW) * 100}%`, top: `${((y - h * (222 / 240)) / VH) * 100}%`, width: `${(w / VW) * 100}%`, aspectRatio: '200/240', zIndex: i + j, animationDelay: `${Math.min(idx * 30, 900)}ms`, filter: sel === ses.id ? 'drop-shadow(0 0 10px rgba(167,243,208,.9))' : undefined }}>
+          <button key={ses.id} onClick={() => onPick(ses)} className="anim-pop pointer-events-auto absolute" style={{ left: `${((x - w / 2) / VW) * 100}%`, top: `${((y - h * (222 / 240)) / VH) * 100}%`, width: `${(w / VW) * 100}%`, aspectRatio: '200/240', zIndex: i + j, animationDelay: `${Math.min(idx * 30, 900)}ms`, filter: sel === ses.id ? 'drop-shadow(0 0 10px rgba(167,243,208,.9))' : undefined }}>
             <Plant species={ses.species} g={ses.ok ? 1 : Math.max(0.6, ses.p ?? 0.6)} dead={!ses.ok} golden={ses.golden} lite className="h-full w-full" />
           </button>
         );
@@ -115,7 +115,7 @@ export default function Grove({ go }) {
         {KINDS.map((k) => <button key={k} onClick={() => { setKind(k); setOff(0); setSel(null); }} className={`relative z-10 py-1.5 capitalize transition-colors ${k === kind ? 'text-white' : 'text-white/45'}`}>{k}</button>)}
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="relative z-10 mt-4 flex items-center justify-between">
         <button aria-label="Previous" onClick={() => shift(-1)} className="press flex h-9 w-9 items-center justify-center rounded-full bg-white/5"><ChevronLeft size={18} /></button>
         <span className="text-sm font-medium text-white/70">{label}</span>
         <button aria-label="Next" onClick={() => shift(1)} disabled={off === 0} className="press flex h-9 w-9 items-center justify-center rounded-full bg-white/5 disabled:opacity-25"><ChevronRight size={18} /></button>
