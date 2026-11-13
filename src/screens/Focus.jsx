@@ -272,7 +272,7 @@ export default function Focus({ onSettings, go }) {
   };
 
   return (
-    <div className={`flex h-full flex-col px-5 pt-[calc(env(safe-area-inset-top)+14px)] ${a ? 'pb-[calc(env(safe-area-inset-bottom)+20px)]' : 'pb-[calc(env(safe-area-inset-bottom)+92px)] short:pb-[calc(env(safe-area-inset-bottom)+84px)]'}`}>
+    <div className={`flex h-full flex-col px-5 pt-[calc(env(safe-area-inset-top)+14px)] ${a ? 'pb-[calc(env(safe-area-inset-bottom)+20px)]' : 'pb-[calc(var(--nav-b)+80px)] short:pb-[calc(var(--nav-b)+72px)]'}`}>
       <header className={`flex items-center justify-between transition-all duration-700 ${a ? 'pointer-events-none -translate-y-3 opacity-0' : ''}`}>
         <div className="glass flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold">
           <Flame size={16} className={streak ? 'text-orange-400' : 'text-white/30'} fill={streak ? 'currentColor' : 'none'} />

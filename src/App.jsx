@@ -124,7 +124,7 @@ export default function App() {
           {cur === 'shop' && <Shop />}
           {cur === 'journey' && <Journey />}
         </div>
-        <nav className={`glass absolute inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-30 grid grid-cols-4 rounded-full p-1.5 transition-all duration-700 ${busy ? 'pointer-events-none translate-y-28 opacity-0' : ''}`}>
+        <nav className={`glass absolute inset-x-4 bottom-[var(--nav-b)] z-30 grid grid-cols-4 rounded-full p-1.5 transition-all duration-700 ${busy ? 'pointer-events-none translate-y-28 opacity-0' : ''}`}>
           <span className="absolute inset-y-1.5 left-1.5 w-[calc(25%-3px)] rounded-full bg-white/10 transition-transform duration-500" style={{ transform: `translateX(${idx * 100}%)`, transitionTimingFunction: 'cubic-bezier(.3,1.4,.5,1)' }} />
           {TABS.map(([id, label, Icon]) => (
             <button key={id} onClick={() => { setTab(id); haptic(5); }} className={`relative z-10 flex h-12 flex-col items-center justify-center gap-0.5 transition-colors ${cur === id ? 'text-emerald-300' : 'text-white/40'}`}>

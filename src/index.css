@@ -2,7 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+  /* Tab bar offset. The iPhone home-indicator inset (34px) is taller than the bar needs, so the bar
+     sits partly inside it instead of floating a full inset above the screen edge. */
+  --nav-b: max(10px, calc(env(safe-area-inset-bottom) - 12px));
+}
 html, body, #root { height: 100%; }
 body {
   @apply bg-ink text-white antialiased font-sans;
@@ -99,7 +104,7 @@ input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; bo
 }
 
 /* The focus dial takes whatever height is left after the fixed controls, so nothing overlaps on short phones. */
-.dial-size { width: min(80vw, 340px, max(120px, calc(100dvh - 530px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))); }
+.dial-size { width: min(80vw, 340px, max(120px, calc(100dvh - 520px - env(safe-area-inset-top) - var(--nav-b)))); }
 @media (max-height: 720px) {
-  .dial-size { width: min(80vw, 340px, max(120px, calc(100dvh - 445px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))); }
+  .dial-size { width: min(80vw, 340px, max(120px, calc(100dvh - 435px - env(safe-area-inset-top) - var(--nav-b)))); }
 }
