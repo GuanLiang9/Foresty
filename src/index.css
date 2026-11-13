@@ -8,16 +8,18 @@
      sits partly inside it instead of floating a full inset above the screen edge. */
   --nav-b: max(10px, calc(env(safe-area-inset-bottom) - 12px));
 }
-html, body { height: 100%; background: #060a09; }
+html { height: var(--app-h); overflow: hidden; background: #060a09; }
+body { position: relative; height: 100%; overflow: hidden; }
+#root { height: 100%; }
 /* --app-h is the true height of the app surface.
    Browser tab: 100dvh (tracks the collapsing toolbar). Installed: 100vh (no toolbar).
    Installed on iOS: set in px by main.jsx, because iOS with a translucent status bar reports a viewport that is
    one status-bar height too short, which left a dead black strip at the bottom of every screen. */
 :root { --app-h: 100dvh; }
 @media (display-mode: standalone) { :root { --app-h: 100vh; } }
-#root { position: fixed; top: 0; left: 0; width: 100%; height: var(--app-h); }
-/* Full-screen layers (sheets, overlays) must use the same height, not the short viewport. */
-.fixed.inset-0 { bottom: auto; height: var(--app-h); }
+/* The page never scrolls, so nothing needs position: fixed. iOS clips fixed layers to its (too short) viewport,
+   which cut off the tab bar; absolute layers are laid out against the full-height body instead. */
+.fixed { position: absolute; }
 body {
   @apply bg-ink text-white antialiased font-sans;
   overscroll-behavior: none;
