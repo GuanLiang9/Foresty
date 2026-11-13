@@ -97,7 +97,7 @@ function Settings({ open, onClose }) {
         </div>
       </Row>
       <button onClick={() => (wipe ? (resetAll(), setWipe(false), onClose(), toast('Fresh soil')) : setWipe(true))} className={`mt-5 w-full rounded-full py-3 text-sm font-medium ${wipe ? 'bg-rose-500/30 text-rose-100' : 'text-rose-300/70'}`}>{wipe ? 'Tap again to erase everything' : 'Erase all data'}</button>
-      <p className="mt-3 text-center text-[11px] text-white/25">{APP} 1.0{SPEED > 1 ? ' · demo speed ×60' : ''} · {innerWidth}×{innerHeight} / {screen.width}×{screen.height}</p>
+      <p className="mt-3 text-center text-[11px] text-white/25">{APP} 1.0{SPEED > 1 ? ' · demo speed ×60' : ''}</p>
     </Sheet>
   );
 }
