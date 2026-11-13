@@ -66,7 +66,7 @@ export function Sheet({ open, onClose, title, children }) {
   return createPortal(
     <div className={`fixed inset-0 z-50 flex items-end justify-center ${leaving ? 'pointer-events-none' : ''}`}>
       <div className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 anim-fade ${leaving ? 'opacity-0' : ''}`} onClick={onClose} />
-      <div ref={el} role="dialog" aria-modal="true" aria-label={title} className="sheet anim-sheet relative w-full max-w-md max-h-[86dvh] overflow-y-auto overscroll-contain no-scrollbar rounded-t-[28px] px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] transition-transform duration-300" style={leaving ? { transform: 'translateY(100%)' } : undefined}>
+      <div ref={el} role="dialog" aria-modal="true" aria-label={title} className="sheet anim-sheet relative w-full max-w-md max-h-[calc(var(--app-h)*.86)] overflow-y-auto overscroll-contain no-scrollbar rounded-t-[28px] px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] transition-transform duration-300" style={leaving ? { transform: 'translateY(100%)' } : undefined}>
         <div className="mx-auto mb-4 h-1.5 w-11 rounded-full bg-white/25" />
         {title && <h3 className="mb-4 text-xl font-semibold tracking-tight">{title}</h3>}
         {children}

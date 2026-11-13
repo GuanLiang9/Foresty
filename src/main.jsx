@@ -23,6 +23,16 @@ class Boundary extends Component {
   }
 }
 
+// Installed iOS apps under-report the viewport height (see --app-h in index.css); the screen height is the truth there.
+const fit = () => {
+  const root = document.documentElement;
+  if (navigator.standalone === true && innerHeight >= innerWidth) root.style.setProperty('--app-h', `${Math.max(innerHeight, screen.height)}px`);
+  else root.style.removeProperty('--app-h');
+};
+fit();
+addEventListener('resize', fit);
+addEventListener('orientationchange', fit);
+
 createRoot(document.getElementById('root')).render(<Boundary><App /></Boundary>);
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
