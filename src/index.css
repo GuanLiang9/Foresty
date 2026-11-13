@@ -8,7 +8,10 @@
      sits partly inside it instead of floating a full inset above the screen edge. */
   --nav-b: max(10px, calc(env(safe-area-inset-bottom) - 12px));
 }
-html, body, #root { height: 100%; }
+html, body { height: 100%; overflow: hidden; background: #060a09; }
+/* Installed iOS apps report a percentage height that stops short of the home-indicator area, leaving a dead
+   strip at the bottom. Pinning the root to the viewport and sizing it in viewport units fills the whole screen. */
+#root { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; height: 100dvh; }
 body {
   @apply bg-ink text-white antialiased font-sans;
   overscroll-behavior: none;
