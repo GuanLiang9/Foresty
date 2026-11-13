@@ -110,6 +110,10 @@ input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; bo
   animation: shimmer 3s linear infinite;
 }
 
+/* Screensaver: freeze every animation and stop painting the app underneath so the GPU can idle. */
+.saver *, .saver *::before, .saver *::after { animation-play-state: paused !important; }
+.saver .ambient, .saver main { visibility: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

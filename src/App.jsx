@@ -16,7 +16,7 @@ const FLIES = [...Array(14)].map((_, i) => ({ left: `${(i * 37 + 11) % 100}%`, t
 
 function Backdrop({ deep }) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="ambient pointer-events-none absolute inset-0 overflow-hidden">
       <div className="drift-a absolute -left-1/4 -top-1/4 h-[70%] w-[90%] rounded-full blur-3xl transition-opacity duration-[2000ms]" style={{ background: 'radial-gradient(closest-side, rgba(16,185,129,.22), transparent)', opacity: deep ? 1 : 0.7 }} />
       <div className="drift-b absolute -bottom-1/4 -right-1/4 h-[70%] w-[90%] rounded-full blur-3xl transition-opacity duration-[2000ms]" style={{ background: 'radial-gradient(closest-side, rgba(34,211,238,.14), transparent)', opacity: deep ? 1 : 0.6 }} />
       {FLIES.map((f, i) => <span key={i} className="firefly absolute h-1 w-1 rounded-full bg-emerald-200 shadow-[0_0_8px_2px_rgba(167,243,208,.7)]" style={f} />)}
@@ -72,8 +72,9 @@ function Settings({ open, onClose }) {
   const install = async () => { const p = window.__install; if (!p) return; p.prompt(); await p.userChoice; window.__install = null; onClose(); };
   return (
     <Sheet open={open} onClose={() => { setWipe(false); onClose(); }} title="Settings">
-      <Row title="Deep Focus" desc="Leave the app for more than 10 seconds and the plant withers."><Toggle on={c.deep} onChange={(v) => setSetting('deep', v)} /></Row>
-      <Row title="Keep screen awake" desc="Stops the phone locking mid-session, so Deep Focus is fair."><Toggle on={c.awake} onChange={(v) => setSetting('awake', v)} /></Row>
+      <Row title="Deep Focus" desc="Away for more than 10 seconds? You check in when you return. Locking the phone is fine; using another app withers the plant."><Toggle on={c.deep} onChange={(v) => setSetting('deep', v)} /></Row>
+      <Row title="Keep screen awake" desc="Off saves the most battery: lock the phone and check in when you are back."><Toggle on={c.awake} onChange={(v) => setSetting('awake', v)} /></Row>
+      <Row title="Screensaver" desc="During a session, dims to a near-black clock after 15 seconds without a touch. Tap to wake."><Toggle on={c.saver} onChange={(v) => setSetting('saver', v)} /></Row>
       <Row title="Daily goal"><Stepper value={c.goal} min={15} max={480} step={15} unit="min" onChange={(v) => setSetting('goal', v)} /></Row>
       <Row title="Break length"><Stepper value={c.breakMin} min={1} max={30} step={1} unit="min" onChange={(v) => setSetting('breakMin', v)} /></Row>
       <Row title="Auto-start after break" desc="The next session begins as soon as a break ends."><Toggle on={c.auto} onChange={(v) => setSetting('auto', v)} /></Row>

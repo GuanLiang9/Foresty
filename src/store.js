@@ -18,7 +18,7 @@ const defaults = () => ({
   selected: 'oak',
   sessions: [],
   tags: TAGS,
-  settings: { mode: 'timer', deep: true, tag: 'work', haptics: true, sfx: true, awake: true, auto: false, goal: 60, breakMin: 5, sounds: {} },
+  settings: { mode: 'timer', deep: true, tag: 'work', haptics: true, sfx: true, awake: true, saver: true, auto: false, goal: 60, breakMin: 5, sounds: {} },
   active: null,
   harvest: null,
   ach: {},
@@ -236,6 +236,17 @@ export function startSession(note = '') {
 }
 
 export const cancelSession = () => commit({ ...state, active: null });
+
+// A web app cannot tell a locked phone from another app, so time away is held for an honest check-in.
+// Stored on the session so a reload cannot skip the question.
+export function markAway(failAt, ms) {
+  const a = state.active;
+  if (a && !a.checkin) commit({ ...state, active: { ...a, checkin: { failAt, ms } } });
+}
+export function clearCheckin() {
+  const a = state.active;
+  if (a?.checkin) commit({ ...state, active: { ...a, checkin: null } });
+}
 
 // Liveness marker: lets a relaunch tell "app was killed mid-session" from "still running".
 export function heartbeat() {

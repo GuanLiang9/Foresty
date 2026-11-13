@@ -7,8 +7,9 @@ import { useSmooth, useGrowIn, useCount } from '../lib/hooks';
 import * as audio from '../lib/audio';
 import { cl, mmss, dur, tier, notify } from '../lib/util';
 import { SP, SOUNDS, PHRASES } from '../data';
-import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, select, addTag, removeTag, isCustomTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW } from '../store';
+import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, markAway, clearCheckin, select, addTag, removeTag, isCustomTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW } from '../store';
 
+const SAVER_MS = 15000;
 const R = 138, C = 2 * Math.PI * R, MAX_MIN = 180;
 const SOUND_ICON = { rain: CloudRain, wind: Wind, waves: Waves, fire: Flame, night: MoonStar, deep: AudioWaveform, stream: Droplets, bowls: Bell };
 const MODES = [['timer', 'Plant a tree'], ['stopwatch', 'Free focus']];
@@ -102,9 +103,40 @@ function Failed({ r, onClose }) {
       <p className="anim-rise mt-4 text-[11px] font-semibold uppercase tracking-[.3em] text-rose-300/80">Withered</p>
       <h2 className="anim-rise mt-2 text-3xl font-semibold tracking-tight">{r.reason === 'left' ? 'You wandered off.' : r.reason === 'short' ? 'Not quite rooted.' : 'Let go too soon.'}</h2>
       <p className="anim-rise mt-3 max-w-[18rem] text-sm leading-relaxed text-white/50" style={{ animationDelay: '.1s' }}>
-        {r.reason === 'left' ? 'Deep Focus wilts a plant after 10 seconds away.' : r.reason === 'short' ? 'Free focus needs 10 minutes before anything can be planted.' : `${dur(x.secs / 60)} in. It stays in your grove as a reminder.`} One withered plant never ruined a forest.
+        {r.reason === 'left' ? 'Time spent in other apps does not grow trees.' : r.reason === 'short' ? 'Free focus needs 10 minutes before anything can be planted.' : `${dur(x.secs / 60)} in. It stays in your grove as a reminder.`} One withered plant never ruined a forest.
       </p>
       <button onClick={onClose} className="cta mt-8 h-14 w-full max-w-xs rounded-full font-semibold">Plant again</button>
+    </div>
+  );
+}
+
+// Battery saver: near-black, no animation, coarse minutes only. The position drifts each minute against OLED burn-in.
+function Saver({ label, sub, species, g, onWake }) {
+  const [n, setN] = useState(0);
+  useEffect(() => { const iv = setInterval(() => setN((x) => x + 1), 60000); return () => clearInterval(iv); }, []);
+  // Wakes on click, not pointerdown: the overlay must still be there when the click lands, or the tap would hit the button underneath.
+  return (
+    <div onClick={onWake} className="fixed inset-0 z-[60] flex items-center justify-center bg-black">
+      <div className="flex flex-col items-center text-center transition-transform duration-[3000ms]" style={{ transform: `translate(${((n * 37) % 60) - 30}px, ${((n * 53) % 80) - 40}px)` }}>
+        <Plant species={species} g={g} sway={false} lite className="h-20 w-16 opacity-40" />
+        <div className="tnum mt-3 text-3xl font-medium tracking-tight text-white/45">{label}</div>
+        <div className="mt-1 text-xs text-white/25">{sub}</div>
+      </div>
+      <div className="absolute inset-x-0 bottom-[calc(var(--nav-b)+24px)] text-center text-[11px] text-white/20">Tap to wake</div>
+    </div>
+  );
+}
+
+function CheckIn({ ms, species, onLocked, onLeft }) {
+  const sec = (ms * SPEED) / 1000;
+  return (
+    <div className="anim-fade fixed inset-0 z-50 flex flex-col items-center justify-center bg-ink/95 px-8 text-center backdrop-blur-2xl">
+      <Plant species={species} g={0.75} sway={false} className="h-40 w-32" />
+      <p className="anim-rise mt-4 text-[11px] font-semibold uppercase tracking-[.3em] text-emerald-300">Welcome back</p>
+      <h2 className="anim-rise mt-2 text-3xl font-semibold tracking-tight">Away for {sec < 60 ? `${Math.round(sec)}s` : dur(sec / 60)}</h2>
+      <p className="anim-rise mt-3 max-w-[18rem] text-sm leading-relaxed text-white/50" style={{ animationDelay: '.08s' }}>Be honest with your plant. A locked phone keeps it growing; another app does not.</p>
+      <button onClick={onLocked} className="cta mt-8 h-14 w-full max-w-xs rounded-full font-semibold">My phone was locked</button>
+      <button onClick={onLeft} className="press mt-3 h-12 w-full max-w-xs rounded-full border border-white/10 bg-white/5 text-sm font-medium text-white/60">I used another app</button>
     </div>
   );
 }
@@ -177,6 +209,9 @@ export default function Focus({ onSettings, go }) {
   const [note, setNote] = useState('');
   const [tagName, setTagName] = useState('');
   const [brk, setBrk] = useState(null);
+  const [saver, setSaver] = useState(false);
+  const saverRef = useRef(false), lastPaint = useRef(0);
+  saverRef.current = saver;
 
   const show = (r) => {
     const ok = r.session.ok;
@@ -204,27 +239,25 @@ export default function Focus({ onSettings, go }) {
       if (!A) return true;
       const unpaused = t - h - (pausedTotal(A, t) - pausedTotal(A, h));
       if (!A.deep || unpaused <= GRACE) return false;
-      const failAt = t - (unpaused - GRACE);
-      if (elapsedOf(A, failAt) >= cap) return false;
-      if (timer) end(false, failAt, 'left'); else endFree(failAt, 'left');
+      markAway(t - (unpaused - GRACE), unpaused);
+      setSaver(false);
       return true;
     };
-    if (Date.now() - a.seen > GRACE + 6000 && away(a.seen, Date.now())) return;
+    if (Date.now() - a.seen > GRACE + 6000) away(a.seen, Date.now());
     let lock, hiddenAt = null;
     const wake = () => cfg.awake && navigator.wakeLock?.request('screen').then((l) => { lock = l; }).catch(() => {});
     const tick = () => {
       settlePause();
       const A = cur(), t = Date.now();
-      if (!A) return;
-      setNow(t);
+      if (!A || A.checkin) return;
+      // Under the screensaver the view only needs a coarse refresh; skipping renders is the battery win.
+      if (!saverRef.current || t - lastPaint.current >= 15000) { lastPaint.current = t; setNow(t); }
       if (elapsedOf(A, t) >= cap) { if (timer) end(true, t); else endFree(t); }
     };
     const vis = () => {
       if (document.hidden) {
         hiddenAt = Date.now();
         heartbeat();
-        const A = cur();
-        if (A?.deep && !isPaused(A, hiddenAt)) notify('Come back — your plant is wilting', 'Return within 10 seconds to save it.');
       } else {
         const h = hiddenAt;
         hiddenAt = null;
@@ -238,6 +271,24 @@ export default function Focus({ onSettings, go }) {
     document.addEventListener('visibilitychange', vis);
     return () => { clearInterval(iv); clearInterval(hb); document.removeEventListener('visibilitychange', vis); lock?.release().catch(() => {}); };
   }, [a?.start]);
+
+  // Screensaver arms after a quiet spell during a session; any touch re-arms it.
+  useEffect(() => {
+    if (!a || !cfg.saver || a.checkin || sheet) { setSaver(false); return; }
+    let t;
+    const arm = () => { clearTimeout(t); t = setTimeout(() => setSaver(true), SAVER_MS); };
+    const evs = ['pointerdown', 'keydown'];
+    arm();
+    evs.forEach((e) => addEventListener(e, arm, { passive: true }));
+    return () => { clearTimeout(t); evs.forEach((e) => removeEventListener(e, arm)); };
+  }, [!!a, cfg.saver, !!a?.checkin, sheet, saver]);
+  useEffect(() => {
+    document.documentElement.classList.toggle('saver', saver);
+    return () => document.documentElement.classList.remove('saver');
+  }, [saver]);
+  const wake = () => { setSaver(false); setNow(Date.now()); haptic(5); };
+  const fromLock = () => { clearCheckin(); setNow(Date.now()); haptic(8); };
+  const fromApp = () => { const f = a.checkin.failAt; clearCheckin(); if (timer) end(false, f, 'left'); else endFree(f, 'left'); };
 
   const levels = useMemo(() => Object.fromEntries(s.ownedSounds.map((id) => [id, cfg.sounds[id] || 0])), [s.ownedSounds, cfg.sounds]);
   useEffect(() => {
@@ -411,6 +462,12 @@ export default function Focus({ onSettings, go }) {
       </Sheet>
 
       <Overlay>
+        {saver && a && !a.checkin && (
+          <Saver species={sp.id} g={0.04 + 0.96 * Math.pow(progress, 1.3)} onWake={wake}
+            label={timer ? `${Math.max(1, Math.ceil((planned - elapsed) / 60))} min left` : `${Math.floor(elapsed / 60)} min`}
+            sub={paused ? 'Paused' : tag.name} />
+        )}
+        {a?.checkin && !result && <CheckIn ms={a.checkin.ms} species={sp.id} onLocked={fromLock} onLeft={fromApp} />}
         {s.harvest && !result && <Harvest h={s.harvest} owned={s.owned} streak={streak} onDone={harvest} />}
         {result && (result.session.ok
           ? <Done r={result} breakMin={cfg.breakMin} onClose={() => setResult(null)} onBreak={() => { setResult(null); setBrk(Date.now() + (cfg.breakMin * 60000) / SPEED); }} />
