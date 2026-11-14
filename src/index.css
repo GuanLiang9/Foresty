@@ -110,9 +110,10 @@ input[type='range']::-moz-range-thumb { width: 20px; height: 20px; border: 0; bo
   animation: shimmer 3s linear infinite;
 }
 
-/* Screensaver: freeze every animation and stop painting the app underneath so the GPU can idle. */
+/* Screensaver: freeze every animation so the GPU can idle under the opaque overlay. The app is not hidden:
+   iOS Safari often fails to redraw backdrop-filter elements after visibility returns, which left the header
+   and tab bar blank after a session. */
 .saver *, .saver *::before, .saver *::after { animation-play-state: paused !important; }
-.saver .ambient, .saver main { visibility: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
