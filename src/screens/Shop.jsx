@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Lock, Check, ShieldCheck } from 'lucide-react';
+import { Lock, Check, ShieldCheck, CalendarHeart, Target } from 'lucide-react';
 import Plant from '../components/Plant';
 import { Coin, toast } from '../components/ui';
 import { useGrowIn } from '../lib/hooks';
-import { SPECIES, SP, RARITY, SHIELD_PRICE, MAX_SHIELDS } from '../data';
-import { useStore, buy, select, buyShield, haptic, sfx } from '../store';
+import { SPECIES, SP, RARITY, SHIELD_PRICE, MAX_SHIELDS, sourceOf } from '../data';
+import { useStore, buy, select, buyShield, setWish, haptic, sfx } from '../store';
 
 export default function Shop() {
   const s = useStore();
   const [view, setView] = useState(s.selected);
   const sp = SP[view], owned = s.owned.includes(view), using = s.selected === view, short = sp.price - s.coins;
-  const g = useGrowIn(view, 1200);
+  const g = useGrowIn(view, 1200), src = sp.exclusive && sourceOf(view), wished = s.wish === view;
 
   const act = () => {
     if (using) return;
@@ -47,7 +47,20 @@ export default function Shop() {
             <div className="mt-1 text-2xl font-semibold tracking-tight">{sp.name}</div>
             <div className="mt-1 text-sm leading-snug text-white/50">{sp.blurb}</div>
           </div>
+          {!owned && !sp.exclusive && (
+            <button onClick={() => { setWish(view); haptic(8); toast(wished ? 'Goal cleared' : `Saving for ${sp.name}`); }} aria-label="Set as goal" className={`press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${wished ? 'bg-rose-400/20 text-rose-200' : 'bg-white/10 text-white/60'}`}><Target size={14} />{wished ? 'Goal' : 'Set goal'}</button>
+          )}
         </div>
+        {src && (
+          <div className="relative mt-3 flex gap-3 rounded-2xl border border-rose-300/15 bg-rose-400/[.07] p-3">
+            <CalendarHeart size={18} className="mt-0.5 shrink-0 text-rose-300" />
+            <div className="min-w-0 text-xs leading-snug">
+              <div className="font-semibold text-rose-200">{src.name} · {src.when}</div>
+              <div className="mt-0.5 text-white/60">{src.how}.</div>
+              <div className="mt-0.5 text-white/40">{src.about}</div>
+            </div>
+          </div>
+        )}
         <button onClick={act} className={`relative mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-semibold ${using ? 'bg-white/5 text-white/40' : owned || (!sp.exclusive && short <= 0) ? 'cta' : 'press border border-white/10 bg-white/5 text-white/60'}`}>
           {using ? <><Check size={18} /> Planting this</> : owned ? 'Plant this' : sp.exclusive ? 'Earned in challenges' : <>{short > 0 && <Lock size={15} />} Unlock · <Coin /> {sp.price}</>}
         </button>

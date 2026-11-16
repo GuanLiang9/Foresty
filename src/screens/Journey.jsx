@@ -1,11 +1,11 @@
-import { Zap as Bolt, Flame, ShieldCheck, Check, Sprout, Trees, TreePine, Mountain, Clock, Zap, Crown, Infinity as Loop, Hourglass, Flower2, Sunrise, Moon, Sparkles, Shapes, Gem } from 'lucide-react';
+import { Zap as Bolt, Flame, ShieldCheck, Check, Sprout, Trees, TreePine, Mountain, Clock, Zap, Crown, Infinity as Loop, Hourglass, Flower2, Sunrise, Moon, Sparkles, Shapes, Gem, Heart, Gift, Flower, Target } from 'lucide-react';
 import { Coin, toast } from '../components/ui';
 import Plant from '../components/Plant';
 import { ACHIEVEMENTS, SP } from '../data';
 import { dayKey, dur } from '../lib/util';
-import { useStore, streakOf, bestStreak, okDays, xpOf, levelInfo, questsOf, claimQuest, challengesOf, claimChallenge, todayMinutes, lifetime, haptic, sfx } from '../store';
+import { useStore, streakOf, bestStreak, okDays, xpOf, levelInfo, questsOf, claimQuest, challengesOf, eventCalendar, claimChallenge, todayMinutes, lifetime, haptic, sfx } from '../store';
 
-const ICON = { first: Sprout, t10: Trees, t50: TreePine, t200: Mountain, h5: Clock, h25: Zap, h100: Crown, s3: Flame, s7: Flame, s30: Loop, long: Hourglass, day5: Flower2, early: Sunrise, night: Moon, gold: Sparkles, col5: Shapes, colall: Gem };
+const ICON = { first: Sprout, t10: Trees, t50: TreePine, t200: Mountain, h5: Clock, h25: Zap, h100: Crown, s3: Flame, s7: Flame, s30: Loop, long: Hourglass, day5: Flower2, early: Sunrise, night: Moon, gold: Sparkles, col5: Shapes, colall: Gem, pink: Flower, festive: Gift, bobo: Heart };
 
 export default function Journey() {
   const s = useStore();
@@ -14,7 +14,7 @@ export default function Journey() {
   const quests = questsOf(s), got = Object.keys(s.ach).length;
   const week = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - 6 + i); const k = dayKey(d); return { k, l: 'SMTWTFS'[d.getDay()], ok: days.has(k), frozen: !!s.frozen[k], today: i === 6 }; });
   const claim = (q) => { const r = claimQuest(q.id); if (r) { sfx('coin'); haptic(15); toast(`+${r.reward} coins`); if (r.boost) toast('All quests done · 2× coin boost earned'); } };
-  const { monthly, event } = challengesOf(s);
+  const { monthly, event } = challengesOf(s), cal = eventCalendar(s), wish = s.wish && SP[s.wish];
   const day = (t) => new Date(t).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
   const take = (c) => { const r = claimChallenge(c.key); if (!r) return; sfx('done'); haptic([20, 40, 60]); toast(r.coins ? `Already owned · +${r.coins} coins` : `${SP[c.reward].name} unlocked`); };
   const card = (c, label, note, open) => (
@@ -88,10 +88,38 @@ export default function Journey() {
         <div className="glass anim-rise mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-sm"><Bolt size={18} className="text-amber-300" fill="currentColor" /><span className="flex-1"><b>2× coin boost</b> ready for your next {s.boosts > 1 ? `${s.boosts} sessions` : 'session'}</span></div>
       )}
 
+      {wish && (
+        <div className="glass anim-rise relative mt-3 overflow-hidden rounded-3xl p-3 pr-4">
+          <div className="absolute -left-6 top-1/2 h-24 w-24 -translate-y-1/2 rounded-full blur-2xl" style={{ background: `${wish.pal.b}55` }} />
+          <div className="relative flex items-center gap-3">
+            <Plant species={wish.id} sway={false} lite className="h-16 w-14 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[.2em] text-rose-300"><Target size={11} /> Saving for</div>
+              <div className="mt-0.5 text-sm font-medium">{wish.name}</div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-all duration-1000" style={{ width: `${Math.min(1, s.coins / wish.price) * 100}%`, background: 'linear-gradient(90deg,#f9a8d4,#fcd34d)' }} /></div>
+              <div className="tnum mt-1 flex items-center gap-1 text-xs text-white/40">{s.coins >= wish.price ? 'Ready to unlock in the Nursery' : <><Coin size={11} />{wish.price - s.coins} to go · about {dur((wish.price - s.coins) * 2)} of focus</>}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-7 text-[11px] font-semibold uppercase tracking-[.25em] text-white/40">Challenges</div>
       <div className="mt-2 space-y-2">
         {card(monthly, monthly.name, `ends ${day(monthly.b - 1)}`, true)}
         {card(event, event.name, event.active ? `ends ${day(event.b - 1)}` : `starts ${day(event.a)}`, event.active)}
+      </div>
+
+      <div className="mt-7 flex items-baseline justify-between"><span className="text-[11px] font-semibold uppercase tracking-[.25em] text-white/40">Event calendar</span><span className="text-[11px] text-white/30">Exclusive plants</span></div>
+      <div className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5 pb-1">
+        {cal.map((E) => (
+          <div key={E.id} className={`glass w-36 shrink-0 rounded-3xl p-3 ${E.active ? 'border-rose-300/40' : ''}`}>
+            <Plant species={E.reward} sway={false} lite className={`mx-auto h-16 w-14 ${E.owned || E.active ? '' : 'opacity-50 saturate-50'}`} />
+            <div className={`mt-1 text-[10px] font-semibold uppercase tracking-[.15em] ${E.active ? 'text-rose-300' : 'text-white/40'}`}>{E.active ? 'Live now' : E.days <= 1 ? 'Tomorrow' : `In ${E.days} days`}</div>
+            <div className="mt-0.5 text-sm font-medium leading-tight">{E.name}</div>
+            <div className="tnum mt-0.5 text-[11px] text-white/45">{day(E.a)} – {day(E.b - 1)}</div>
+            <div className="mt-1 flex items-center gap-1 text-[11px] text-white/55">{E.owned && <Check size={11} className="text-emerald-300" />}{SP[E.reward].name}</div>
+          </div>
+        ))}
       </div>
 
       <div className="mt-7 flex items-baseline justify-between"><span className="text-[11px] font-semibold uppercase tracking-[.25em] text-white/40">Today’s quests</span><span className="text-[11px] text-white/30">New at midnight</span></div>

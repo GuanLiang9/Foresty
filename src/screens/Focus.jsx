@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Flame, Settings2, Volume2, ShieldCheck, Coffee, Share2, Trophy, CloudRain, Wind, Waves, MoonStar, AudioWaveform, Droplets, Bell, Plus, Minus, ChevronRight, ArrowUp, Pause, Play, Zap, Lock, X } from 'lucide-react';
+import { Flame, Settings2, Volume2, ShieldCheck, Coffee, Share2, Trophy, CloudRain, Wind, Waves, MoonStar, AudioWaveform, Droplets, Bell, Plus, Minus, ChevronRight, ArrowUp, Pause, Play, Zap, Lock, X, Sun, Target } from 'lucide-react';
 import Plant from '../components/Plant';
 import { Sheet, Coin, toast } from '../components/ui';
 import { useSmooth, useGrowIn, useCount } from '../lib/hooks';
 import * as audio from '../lib/audio';
 import { cl, mmss, dur, tier, notify } from '../lib/util';
-import { SP, SOUNDS, PHRASES } from '../data';
+import { SP, SOUNDS, PHRASES, FIRST_BLOOM } from '../data';
 import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, markAway, clearCheckin, select, addTag, removeTag, isCustomTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW } from '../store';
 
 const SAVER_MS = 15000;
@@ -61,6 +61,7 @@ const Line = ({ icon, children, delay }) => (
 function Done({ r, breakMin, onBreak, onClose }) {
   const x = r.session, n = r.sessions.length, sp = SP[x.species], g = useGrowIn(x.id, 1500);
   const total = r.coins + r.unlocked.reduce((s, a) => s + a.reward, 0), coins = useCount(total, 1400);
+  const { wish: w, coins: coinsNow } = getState(), wish = w && SP[w];
   const share = () => navigator.share?.({ text: `I just grew ${n > 1 ? `${n} plants` : an(sp.name).toLowerCase()} with ${dur(r.minutes)} of focus in Evergrove.` }).catch(() => {});
   return (
     <div className="anim-fade fixed inset-0 z-40 overflow-y-auto bg-ink/95 backdrop-blur-2xl">
@@ -77,6 +78,8 @@ function Done({ r, breakMin, onBreak, onClose }) {
         <p className="anim-rise mt-2 text-sm text-white/50" style={{ animationDelay: '.14s' }}>{n > 1 ? `${n} plants joined your grove.` : `${an(sp.name)} joined your grove.`}</p>
         <div className="mt-6 w-full space-y-2">
           <Line delay={0.25} icon={<Coin size={20} />}><b className="tnum">+{coins}</b> coins{r.boosted && <span className="text-amber-300"> · 2× boost used</span>}</Line>
+          {r.firstBloom && <Line delay={0.28} icon={<Sun size={20} className="text-amber-200" />}>First bloom of the day · <b>+{FIRST_BLOOM}</b> bonus</Line>}
+          {wish && <Line delay={0.6} icon={<Target size={20} className="text-rose-300" />}>{coinsNow >= wish.price ? <><b>{wish.name}</b> is ready to unlock</> : <><b className="tnum">{wish.price - coinsNow}</b> coins to {wish.name}</>}</Line>}
           {r.boostEarned && <Line delay={0.3} icon={<Zap size={20} className="text-amber-300" fill="currentColor" />}>Daily goal reached · <b>2× boost</b> for your next session</Line>}
           {r.streakUp && <Line delay={0.35} icon={<Flame size={20} className="text-orange-400" />}><b>{r.streak}-day streak</b> — keep it alive tomorrow</Line>}
           {r.levelUp && <Line delay={0.45} icon={<ArrowUp size={20} className="text-cyan-300" />}>Level {r.level.level} · <b>{r.level.title}</b></Line>}
