@@ -17,6 +17,18 @@ export const SPECIES = [
   { id: 'aurora', min: 120, name: 'Aurora Pine', kind: 'pine', snow: true, price: 1100, rarity: 'Epic', pal: P('#67e8f9', '#6366f1', '#3730a3', '#475569', '#e0f2fe'), blurb: 'Carries a little of the northern sky.' },
   { id: 'prism', min: 150, name: 'Prism Spire', kind: 'crystal', price: 1600, rarity: 'Legendary', pal: P('#a5f3fc', '#22d3ee', '#7c3aed', '#1e293b', '#f0abfc'), blurb: 'Attention, crystallised.' },
   { id: 'spirit', min: 180, name: 'Spirit Tree', kind: 'round', dots: true, price: 2400, rarity: 'Legendary', pal: P('#ecfeff', '#a5f3fc', '#38bdf8', '#e2e8f0', '#ffffff'), blurb: 'Only the most devoted keepers ever see one.' },
+  // Pink garden
+  { id: 'tulip', min: 15, name: 'Blush Tulips', kind: 'tulip', price: 90, rarity: 'Common', pal: P('#f9a8d4', '#ec4899', '#22c55e', '#16a34a', '#fdf2f8'), blurb: 'Three little reasons to smile.' },
+  { id: 'sakura', min: 35, name: 'Sakura Cloud', kind: 'round', dots: true, fall: '#fbcfe8', price: 320, rarity: 'Rare', pal: P('#fce7f3', '#f9a8d4', '#f472b6', '#4a3432', '#ffffff'), blurb: 'Lets go of a petal for every quiet minute.' },
+  { id: 'roses', min: 40, name: 'Rose Arbor', kind: 'round', bloom: true, price: 450, rarity: 'Rare', pal: P('#86efac', '#22c55e', '#15803d', '#5b4038', '#f472b6'), blurb: 'Every bloom is a session you did not give up on.' },
+  { id: 'fairy', min: 80, name: 'Fairy Cap', kind: 'shroom', price: 780, rarity: 'Epic', pal: P('#fff1f2', '#f472b6', '#be185d', '#fdf2f8', '#f9a8d4'), blurb: 'Glows pink when someone is thinking of you.' },
+  { id: 'heart', min: 70, name: 'Jobo’s Heart', kind: 'heart', fall: '#e9d5ff', price: 950, rarity: 'Epic', pal: P('#f3e8ff', '#d8b4fe', '#a855f7', '#4c3a5a', '#ffffff'), blurb: 'Half of a matching pair. Find the other half.' },
+  { id: 'quartz', min: 150, name: 'Rose Quartz', kind: 'crystal', price: 1800, rarity: 'Legendary', pal: P('#fce7f3', '#f9a8d4', '#db2777', '#3f1d2b', '#fbcfe8'), blurb: 'Soft on the outside, unbreakable inside.' },
+  // Festive
+  { id: 'cane', min: 25, name: 'Peppermint Cane', kind: 'cane', price: 240, rarity: 'Rare', pal: P('#ffffff', '#ef4444', '#15803d', '#ffffff', '#dc2626'), blurb: 'A sweet little hook to keep you here.' },
+  { id: 'poinsettia', min: 45, name: 'Poinsettia', kind: 'poinsettia', price: 520, rarity: 'Rare', pal: P('#fb7185', '#dc2626', '#166534', '#991b1b', '#facc15'), blurb: 'The star of every festive windowsill.' },
+  { id: 'bobo', min: 120, name: 'Bobo’s Heart', kind: 'heart', orn: true, fall: '#fbcfe8', price: 3000, rarity: 'Legendary', pal: P('#fff1f2', '#fbcfe8', '#f472b6', '#7a4a52', '#ffffff'), blurb: 'The rarest, prettiest tree in the grove. Made for Bobo.' },
+  { id: 'yule', min: 60, name: 'Yuletide Fir', kind: 'pine', orn: true, fall: '#ffffff', price: 720, rarity: 'Epic', pal: P('#4ade80', '#16a34a', '#14532d', '#6b4f3d', '#ef4444'), blurb: 'Baubles, a star and presents underneath.' },
   // Exclusive species are never sold; they are earned from monthly challenges and seasonal events.
   { id: 'lantern', min: 35, name: 'Lantern Maple', kind: 'round', dots: true, exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fde68a', '#f87171', '#b91c1c', '#4a2c2a', '#fef3c7'), blurb: 'Hung with small lights for those who kept going.' },
   { id: 'tide', min: 50, name: 'Tide Palm', kind: 'palm', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#bae6fd', '#38bdf8', '#0369a1', '#94a3b8', '#f0f9ff'), blurb: 'Comes in slowly, the way good months do.' },
@@ -25,6 +37,9 @@ export const SPECIES = [
   { id: 'sunspire', min: 100, name: 'Sun Spire', kind: 'crystal', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fef08a', '#fbbf24', '#ea580c', '#292524', '#fde047'), blurb: 'A shard of the longest day.' },
   { id: 'star', min: 55, name: 'Starpine', kind: 'pine', snow: true, exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fde68a', '#1d4ed8', '#1e3a8a', '#334155', '#fef9c3'), blurb: 'Catches the first cold stars of Ember Days.' },
   { id: 'frost', min: 70, name: 'Frostcap', kind: 'shroom', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#e0f2fe', '#7dd3fc', '#0284c7', '#f1f5f9', '#bae6fd'), blurb: 'Glows under the Winter Lights.' },
+  { id: 'noel', min: 60, name: 'Pink Noel', kind: 'pine', orn: true, fall: '#ffffff', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fce7f3', '#f9a8d4', '#ec4899', '#6b4f4f', '#ffffff'), blurb: 'The prettiest tree of Christmas Eve.' },
+  { id: 'mandarin', min: 50, name: 'Lucky Mandarin', kind: 'round', dots: true, exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#86efac', '#22c55e', '#166534', '#57382b', '#fb923c'), blurb: 'Huat ah! Good fortune for the new year.' },
+  { id: 'cupid', min: 45, name: "Cupid's Heart", kind: 'heart', fall: '#fda4af', exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fecdd3', '#fb7185', '#e11d48', '#4a2c2a', '#fff1f2'), blurb: 'Only blooms around Valentine’s Day.' },
 ];
 export const BUYABLE = SPECIES.filter((s) => !s.exclusive);
 export const SP = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
@@ -57,11 +72,27 @@ export const FREE_SOUNDS = SOUNDS.filter((s) => !s.price).map((s) => s.id);
 export const MONTHLY = { goal: 900, rewards: ['lantern', 'tide', 'rose'] };
 // Seasonal events repeat every year. from/to are [month, day], inclusive.
 export const EVENTS = [
-  { id: 'spring', name: 'Spring Bloom', from: [3, 10], to: [4, 10], goal: 12, reward: 'petal' },
-  { id: 'summer', name: 'Midsummer', from: [6, 10], to: [7, 10], goal: 12, reward: 'sunspire' },
-  { id: 'ember', name: 'Ember Days', from: [11, 5], to: [11, 30], goal: 12, reward: 'star' },
-  { id: 'winter', name: 'Winter Lights', from: [12, 5], to: [12, 31], goal: 12, reward: 'frost' },
+  { id: 'lunar', name: 'Lunar Spring', from: [1, 15], to: [2, 8], goal: 12, reward: 'mandarin', about: 'Chinese New Year. Grow good fortune for the year ahead.' },
+  { id: 'valentine', name: 'Sweethearts', from: [2, 9], to: [2, 28], goal: 10, reward: 'cupid', about: 'Valentine’s season. Grow something for the one you love.' },
+  { id: 'spring', name: 'Spring Bloom', from: [3, 10], to: [4, 10], goal: 12, reward: 'petal', about: 'The garden wakes up. Everything flowers.' },
+  { id: 'summer', name: 'Midsummer', from: [6, 10], to: [7, 10], goal: 12, reward: 'sunspire', about: 'The longest, brightest days of the year.' },
+  { id: 'ember', name: 'Ember Days', from: [11, 5], to: [11, 30], goal: 12, reward: 'star', about: 'Cool nights, first stars, the year winding down.' },
+  { id: 'winter', name: 'Winter Lights', from: [12, 1], to: [12, 18], goal: 12, reward: 'frost', about: 'Lights go up all over the grove.' },
+  { id: 'xmas', name: 'Christmas', from: [12, 19], to: [12, 31], goal: 8, reward: 'noel', about: 'Christmas week. Grow the prettiest tree of the year.' },
 ];
+const MON = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+export const eventDates = (E) => `${E.from[1]} ${MON[E.from[0] - 1]} – ${E.to[1]} ${MON[E.to[0] - 1]}`;
+// Where an exclusive species comes from, for the Nursery.
+export function sourceOf(id) {
+  const E = EVENTS.find((x) => x.reward === id);
+  if (E) return { name: E.name, when: eventDates(E), how: `Grow ${E.goal} plants during the event`, about: E.about };
+  if (MONTHLY.rewards.includes(id)) return { name: 'Monthly challenge', when: `every ${MONTHLY.rewards.length} months`, how: 'Focus for 15 hours in one month', about: 'The monthly reward rotates between three exclusive plants.' };
+  return null;
+}
+// Paid on the first plant grown each day.
+export const FIRST_BLOOM = 15;
+export const PINK = ['tulip', 'sakura', 'roses', 'fairy', 'quartz', 'bobo', 'blossom', 'rose', 'petal', 'noel', 'cupid'];
+export const FESTIVE = ['cane', 'poinsettia', 'yule'];
 export const DUPLICATE_REWARD = 300;
 
 export const PHRASES = [
@@ -96,6 +127,9 @@ export const ACHIEVEMENTS = [
   { id: 'gold', name: 'Golden Hour', desc: 'Find a golden bloom', reward: 30, test: (L) => L.golden >= 1 },
   { id: 'col5', name: 'Curator', desc: 'Own 5 species', reward: 40, test: (L) => L.species >= 5 },
   { id: 'colall', name: 'Botanist', desc: 'Own every Nursery species', reward: 500, test: (L) => L.buyable >= BUYABLE.length },
+  { id: 'pink', name: 'Pretty in Pink', desc: 'Own 5 pink plants', reward: 100, test: (L) => L.owned.filter((id) => PINK.includes(id)).length >= 5 },
+  { id: 'festive', name: 'Festive Spirit', desc: 'Own the cane, poinsettia and fir', reward: 120, test: (L) => FESTIVE.every((id) => L.owned.includes(id)) },
+  { id: 'bobo', name: 'Bobo’s Heart', desc: 'Grow a Bobo’s Heart', reward: 300, test: (L) => L.grown.includes('bobo') },
 ];
 
 // One quest is drawn from each slot every day.

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { SP, BUYABLE, TAGS, TAG_COLORS, ACHIEVEMENTS, QUESTS, LEVELS, SOUNDS, FREE_SOUNDS, MONTHLY, EVENTS, DUPLICATE_REWARD, SHIELD_PRICE, MAX_SHIELDS } from './data';
+import { SP, BUYABLE, TAGS, TAG_COLORS, ACHIEVEMENTS, QUESTS, LEVELS, SOUNDS, FREE_SOUNDS, MONTHLY, EVENTS, DUPLICATE_REWARD, FIRST_BLOOM, SHIELD_PRICE, MAX_SHIELDS } from './data';
 import { dayKey, mulberry } from './lib/util';
 import * as audio from './lib/audio';
 
@@ -16,6 +16,7 @@ const defaults = () => ({
   owned: ['oak', 'pine'],
   ownedSounds: FREE_SOUNDS,
   selected: 'oak',
+  wish: 'bobo',
   sessions: [],
   tags: TAGS,
   settings: { mode: 'timer', deep: true, tag: 'work', haptics: true, sfx: true, awake: true, saver: true, auto: false, goal: 60, breakMin: 5, sounds: {} },
@@ -41,6 +42,7 @@ function load() {
       s.owned = [...new Set(['oak', 'pine', ...s.owned.filter((id) => SP[id])])];
       s.ownedSounds = [...new Set([...FREE_SOUNDS, ...s.ownedSounds.filter((id) => SOUNDS.some((x) => x.id === id))])];
       if (!s.owned.includes(s.selected)) s.selected = 'oak';
+      if (s.wish && (!SP[s.wish] || SP[s.wish].exclusive || s.owned.includes(s.wish))) s.wish = null;
       if (s.active && !SP[s.active.species]) s.active = null;
       if (!s.tags.length) s.tags = d.tags;
       return s;
@@ -111,6 +113,8 @@ export function lifetime(s) {
     longest: ok.reduce((n, x) => Math.max(n, x.secs), 0) / 60,
     best: bestStreak(s),
     species: s.owned.length,
+    owned: s.owned,
+    grown: [...new Set(ok.map((x) => x.species))],
     buyable: BUYABLE.filter((x) => s.owned.includes(x.id)).length,
     golden: ok.filter((x) => x.golden).length,
     maxDay: Math.max(0, ...Object.values(byDay)),
@@ -154,6 +158,17 @@ export function challengesOf(s) {
   const ev = active ? Math.min(E.goal, s.sessions.filter((x) => x.ok && x.end >= E.a && x.end < E.b).length) : 0;
   return { monthly, event: { ...E, text: `Grow ${E.goal} plants during ${E.name}`, v: ev, shown: `${ev} / ${E.goal}`, active, claimed: !!s.claims[E.key] } };
 }
+
+// Every seasonal event, ordered by its next (or current) window.
+export function eventCalendar(s) {
+  const t = Date.now(), y = new Date().getFullYear();
+  return EVENTS.map((E) => {
+    const w = [y, y + 1].map((yr) => ({ a: +new Date(yr, E.from[0] - 1, E.from[1]), b: +new Date(yr, E.to[0] - 1, E.to[1] + 1), yr })).find((x) => x.b > t);
+    return { ...E, ...w, active: t >= w.a, days: Math.ceil((w.a - t) / 864e5), owned: s.owned.includes(E.reward) };
+  }).sort((p, q) => p.a - q.a);
+}
+
+export const setWish = (id) => commit({ ...state, wish: state.wish === id ? null : id });
 
 export function periodRange(kind, off) {
   const d = new Date();
@@ -221,13 +236,15 @@ function reward(s, drafts, totalMin, at) {
   let coins = Math.max(1, Math.round(totalMin * 0.5 * (1 + Math.min(before.streak, 10) * 0.03)));
   if (golden) coins *= 2;
   if (boosted) coins *= 2;
+  const firstBloom = !s.sessions.some((x) => x.ok && dayKey(x.end) === dayKey(at));
+  if (firstBloom) coins += FIRST_BLOOM;
   sessions[0].coins = coins;
   let next = { ...s, sessions: [...s.sessions, ...sessions], coins: s.coins + coins, boosts: s.boosts - (boosted ? 1 : 0) }, unlocked;
   const today = dayKey(), boostEarned = before.today < s.settings.goal && todayMinutes(next) >= s.settings.goal && s.boostDay !== today;
   if (boostEarned) next = { ...next, boosts: next.boosts + 1, boostDay: today };
   [next, unlocked] = award(next, at);
   const streak = streakOf(next), level = levelInfo(xpOf(next));
-  return [next, { sessions, session: sessions[0], minutes: totalMin, coins, golden, boosted, boostEarned, unlocked, streak, streakUp: streak > before.streak, level, levelUp: level.level > before.level }];
+  return [next, { sessions, session: sessions[0], minutes: totalMin, coins, golden, boosted, firstBloom, boostEarned, unlocked, streak, streakUp: streak > before.streak, level, levelUp: level.level > before.level }];
 }
 
 export function startSession(note = '') {
@@ -296,7 +313,7 @@ export function confirmHarvest(ids) {
 export function buy(id) {
   const sp = SP[id];
   if (!sp || sp.exclusive || state.owned.includes(id) || state.coins < sp.price) return false;
-  const [next, unlocked] = award({ ...state, coins: state.coins - sp.price, owned: [...state.owned, id], selected: id }, Date.now());
+  const [next, unlocked] = award({ ...state, coins: state.coins - sp.price, owned: [...state.owned, id], selected: id, wish: state.wish === id ? null : state.wish }, Date.now());
   commit(next);
   return unlocked;
 }
