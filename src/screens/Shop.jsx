@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, Check, ShieldCheck, CalendarHeart, Target } from 'lucide-react';
+import { Lock, Check, ShieldCheck, CalendarHeart, Target, HeartHandshake } from 'lucide-react';
 import Plant from '../components/Plant';
 import { Coin, toast } from '../components/ui';
 import { useGrowIn } from '../lib/hooks';
@@ -51,6 +51,16 @@ export default function Shop() {
             <button onClick={() => { setWish(view); haptic(8); toast(wished ? 'Goal cleared' : `Saving for ${sp.name}`); }} aria-label="Set as goal" className={`press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ${wished ? 'bg-rose-400/20 text-rose-200' : 'bg-white/10 text-white/60'}`}><Target size={14} />{wished ? 'Goal' : 'Set goal'}</button>
           )}
         </div>
+        {sp.pair && (
+          <div className="relative mt-3 flex items-center gap-3 rounded-2xl border border-pink-200/20 p-3" style={{ background: 'linear-gradient(110deg, rgba(244,114,182,.12), rgba(96,165,250,.12))' }}>
+            <HeartHandshake size={18} className="shrink-0 text-pink-200" />
+            <div className="min-w-0 flex-1 text-xs leading-snug">
+              <div className="soulmate-text font-semibold">Soulmate pair · rarest in the grove</div>
+              <div className="mt-0.5 text-white/55">Pairs with {SP[sp.pair].name}. Grow both to unlock Soulmates (+600).</div>
+            </div>
+            <button onClick={() => setView(sp.pair)} className="press shrink-0"><Plant species={sp.pair} sway={false} lite className="h-12 w-10" /></button>
+          </div>
+        )}
         {src && (
           <div className="relative mt-3 flex gap-3 rounded-2xl border border-rose-300/15 bg-rose-400/[.07] p-3">
             <CalendarHeart size={18} className="mt-0.5 shrink-0 text-rose-300" />
@@ -70,7 +80,7 @@ export default function Shop() {
         {SPECIES.map((x, i) => {
           const have = s.owned.includes(x.id);
           return (
-            <button key={x.id} onClick={() => { setView(x.id); haptic(5); }} className={`anim-rise press relative flex flex-col items-center rounded-2xl border p-1.5 pb-2 ${view === x.id ? 'border-emerald-300/60 bg-emerald-300/10' : 'border-white/[.07] bg-white/[.03]'}`} style={{ animationDelay: `${0.1 + i * 0.025}s` }}>
+            <button key={x.id} onClick={() => { setView(x.id); haptic(5); }} className={`anim-rise press relative flex flex-col items-center rounded-2xl border p-1.5 pb-2 ${x.pair ? 'soulmate-tile' : ''} ${view === x.id ? 'border-emerald-300/60 bg-emerald-300/10' : 'border-white/[.07] bg-white/[.03]'}`} style={{ animationDelay: `${0.1 + i * 0.025}s` }}>
               <Plant species={x.id} sway={false} lite className={`h-16 w-full transition ${have ? '' : 'opacity-45 saturate-50'}`} />
               <span className="tnum mt-0.5 flex h-4 items-center gap-1 text-[10px] font-medium text-white/50">
                 {s.selected === x.id ? <Check size={11} className="text-emerald-300" /> : have ? `${x.min} min` : x.exclusive ? 'Event' : <><Coin size={10} />{x.price}</>}

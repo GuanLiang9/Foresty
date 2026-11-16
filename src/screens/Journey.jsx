@@ -1,11 +1,11 @@
-import { Zap as Bolt, Flame, ShieldCheck, Check, Sprout, Trees, TreePine, Mountain, Clock, Zap, Crown, Infinity as Loop, Hourglass, Flower2, Sunrise, Moon, Sparkles, Shapes, Gem, Heart, Gift, Flower, Target } from 'lucide-react';
+import { Zap as Bolt, Flame, ShieldCheck, Check, Sprout, Trees, TreePine, Mountain, Clock, Zap, Crown, Infinity as Loop, Hourglass, Flower2, Sunrise, Moon, Sparkles, Shapes, Gem, Heart, Gift, Flower, Target, HeartHandshake } from 'lucide-react';
 import { Coin, toast } from '../components/ui';
 import Plant from '../components/Plant';
 import { ACHIEVEMENTS, SP } from '../data';
 import { dayKey, dur } from '../lib/util';
 import { useStore, streakOf, bestStreak, okDays, xpOf, levelInfo, questsOf, claimQuest, challengesOf, eventCalendar, claimChallenge, todayMinutes, lifetime, haptic, sfx } from '../store';
 
-const ICON = { first: Sprout, t10: Trees, t50: TreePine, t200: Mountain, h5: Clock, h25: Zap, h100: Crown, s3: Flame, s7: Flame, s30: Loop, long: Hourglass, day5: Flower2, early: Sunrise, night: Moon, gold: Sparkles, col5: Shapes, colall: Gem, pink: Flower, festive: Gift, bobo: Heart };
+const ICON = { first: Sprout, t10: Trees, t50: TreePine, t200: Mountain, h5: Clock, h25: Zap, h100: Crown, s3: Flame, s7: Flame, s30: Loop, long: Hourglass, day5: Flower2, early: Sunrise, night: Moon, gold: Sparkles, col5: Shapes, colall: Gem, pink: Flower, festive: Gift, bobo: Heart, jobo: Heart, soul: HeartHandshake };
 
 export default function Journey() {
   const s = useStore();

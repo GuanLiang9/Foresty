@@ -264,15 +264,16 @@ function Heart({ g, pal, dead, orn, lite, uid }) {
     <>
       {o > 0 && !lite && (
         <>
-          <defs><radialGradient id={uid}><stop offset="0" stopColor="#fbcfe8" stopOpacity=".55" /><stop offset="1" stopColor="#fbcfe8" stopOpacity="0" /></radialGradient></defs>
-          <circle cx="100" cy={top - 26} r={92 * o} fill={`url(#${uid})`} />
+          <defs><radialGradient id={uid}><stop offset="0" stopColor={pal.b} stopOpacity=".6" /><stop offset="1" stopColor={pal.b} stopOpacity="0" /></radialGradient></defs>
+          <circle className="halo-pulse" cx="100" cy={top - 26} r={92 * o} fill={`url(#${uid})`} />
+          <g transform={`translate(100 ${top - 26})`}><g className="orbit">{[0, 72, 144, 216, 288].map((r, i) => <circle key={r} cx={Math.cos((r * Math.PI) / 180) * 70} cy={Math.sin((r * Math.PI) / 180) * 70} r={i % 2 ? 1.8 : 2.6} fill="#fef9c3" />)}</g></g>
         </>
       )}
       <Trunk g={g} h={h} pal={pal} wMax={7} />
       <Sprout y={top + 2} g={g} fill={pal.a} o={1 - seg(g, 0.25, 0.45)} />
       {s > 0 && (
         <g transform={`translate(100 ${top - 22 * s}) scale(${s})`}>
-          <g className="leaf-breathe">
+          <g className={o > 0 && !lite ? 'heartbeat' : 'leaf-breathe'}>
             {o > 0 && <path d={HEART} fill="none" stroke="#fcd34d" strokeWidth={5 * o} transform="scale(1.08)" />}
             <path d={HEART} fill={pal.c} />
             <path d={HEART} fill={pal.b} transform="translate(0 -4) scale(.8)" />
@@ -283,7 +284,7 @@ function Heart({ g, pal, dead, orn, lite, uid }) {
           {o > 0 && <path d="M-16 -46L-10 -60L-3 -50L0 -64L3 -50L10 -60L16 -46Z" fill="#fcd34d" stroke="#f59e0b" strokeWidth="1.2" strokeLinejoin="round" transform={`scale(${o})`} />}
         </g>
       )}
-      {o > 0 && !lite && [[46, 70, 0], [158, 84, 0.7], [62, 126, 1.3], [146, 40, 1.9], [100, 22, 2.4]].map(([x, y, dl], i) => (
+      {o > 0 && !lite && [[46, 70, 0], [158, 84, 0.7], [62, 126, 1.3], [146, 40, 1.9], [100, 22, 2.4], [30, 110, 0.4], [172, 128, 1.6], [128, 16, 1]].map(([x, y, dl], i) => (
         <path key={`s${i}`} className="twinkle" style={{ animationDelay: `${dl}s` }} d={SPARK} transform={`translate(${x} ${y})`} fill="#fde68a" />
       ))}
     </>

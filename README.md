@@ -30,15 +30,43 @@ Installing a PWA needs HTTPS, so host the build. The included workflow deploys t
 | Plant a tree | Every species has a fixed focus time (10–180 min); rarer trees ask for longer. Pick the tree, finish its time, it is planted |
 | Free focus | Open-ended stopwatch. Stop after 10 min and spend the minutes on any mix of owned trees; leftover minutes still earn coins |
 | Session controls | Tags, a one-line intention, 10-second cancel window, pause (5 min total per session), hold-to-give-up, optional auto-start after a break |
-| Challenges | Monthly 15-hour challenge and four seasonal events, each rewarding a species that cannot be bought |
+| Challenges | Monthly 15-hour challenge and seven yearly events, each rewarding a species that cannot be bought (see below). Journey shows an event calendar with countdowns |
 | Boosts | 2× coins on the next session, earned by reaching the daily goal or clearing all three daily quests |
 | Deep Focus | Leaving the app for more than 10 seconds withers the plant. Screen wake lock keeps the phone from locking mid-session |
-| Plants | 13 species drawn procedurally in SVG, each growing from seed to maturity; longer sessions grow bigger plants |
-| Rewards | Coins per session, streak bonus, random golden blooms (double coins), unlockable species |
-| Habit loop | Daily streak with purchasable streak shields, daily goal, three rotating daily quests, 17 milestones, levels |
+| Plants | 33 species drawn procedurally in SVG, each growing from seed to maturity; longer sessions grow bigger plants. Includes a pink garden, festive plants (candy cane, poinsettia, decorated Christmas trees) and the Soulmate pair |
+| Rewards | Coins per session, +15 first-bloom bonus for the first plant each day, streak bonus, random golden blooms (double coins), unlockable species |
+| Habit loop | Daily streak with purchasable streak shields, daily goal, three rotating daily quests, 22 milestones, levels, a savings goal that tracks coins toward a chosen plant |
 | Grove | Day / week / month / year islands, focus totals, time-of-day chart, tag breakdown, session timeline |
 | Sound | Eight mixable ambient layers synthesised with Web Audio; three free, five unlocked with coins |
 | Extras | Break timer, completion notifications, JSON backup and restore |
+
+## Soulmate pair
+
+The two rarest trees in the grove, marked with a shimmering **Soulmate** label and a glowing tile in the Nursery.
+
+| Tree | Price | Session | Look |
+| --- | --- | --- | --- |
+| Bobo’s Heart | 3000 coins | 120 min | Pink heart canopy, gold rim and crown |
+| Jobo’s Heart | 2800 coins | 120 min | Blue heart canopy, gold rim and crown |
+
+Both beat like a heart, pulse a soft halo, and have orbiting lights, twinkling sparkles and rising hearts. Each links to its other half in the Nursery. Milestones: grow either one (+300 each), grow both for **Soulmates** (+600).
+
+## Events and exclusive plants
+
+Exclusive plants cannot be bought. Each event repeats every year (dates inclusive); the Nursery shows where each one comes from.
+
+| Event | Dates | Goal | Reward |
+| --- | --- | --- | --- |
+| Lunar Spring | 15 Jan – 8 Feb | Grow 12 plants | Lucky Mandarin |
+| Sweethearts | 9 – 28 Feb | Grow 10 plants | Cupid’s Heart |
+| Spring Bloom | 10 Mar – 10 Apr | Grow 12 plants | Petal Willow |
+| Midsummer | 10 Jun – 10 Jul | Grow 12 plants | Sun Spire |
+| Ember Days | 5 – 30 Nov | Grow 12 plants | Starpine |
+| Winter Lights | 1 – 18 Dec | Grow 12 plants | Frostcap |
+| Christmas | 19 – 31 Dec | Grow 8 plants | Pink Noel |
+| Monthly challenge | Every month | Focus 15 hours | Lantern Maple, Tide Palm, Rose Cactus (rotating) |
+
+An exclusive plant you already own pays 300 coins instead.
 
 ## Platform limits worth knowing
 

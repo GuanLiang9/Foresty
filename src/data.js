@@ -22,12 +22,13 @@ export const SPECIES = [
   { id: 'sakura', min: 35, name: 'Sakura Cloud', kind: 'round', dots: true, fall: '#fbcfe8', price: 320, rarity: 'Rare', pal: P('#fce7f3', '#f9a8d4', '#f472b6', '#4a3432', '#ffffff'), blurb: 'Lets go of a petal for every quiet minute.' },
   { id: 'roses', min: 40, name: 'Rose Arbor', kind: 'round', bloom: true, price: 450, rarity: 'Rare', pal: P('#86efac', '#22c55e', '#15803d', '#5b4038', '#f472b6'), blurb: 'Every bloom is a session you did not give up on.' },
   { id: 'fairy', min: 80, name: 'Fairy Cap', kind: 'shroom', price: 780, rarity: 'Epic', pal: P('#fff1f2', '#f472b6', '#be185d', '#fdf2f8', '#f9a8d4'), blurb: 'Glows pink when someone is thinking of you.' },
-  { id: 'heart', min: 70, name: 'Jobo’s Heart', kind: 'heart', fall: '#e9d5ff', price: 950, rarity: 'Epic', pal: P('#f3e8ff', '#d8b4fe', '#a855f7', '#4c3a5a', '#ffffff'), blurb: 'Half of a matching pair. Find the other half.' },
   { id: 'quartz', min: 150, name: 'Rose Quartz', kind: 'crystal', price: 1800, rarity: 'Legendary', pal: P('#fce7f3', '#f9a8d4', '#db2777', '#3f1d2b', '#fbcfe8'), blurb: 'Soft on the outside, unbreakable inside.' },
   // Festive
   { id: 'cane', min: 25, name: 'Peppermint Cane', kind: 'cane', price: 240, rarity: 'Rare', pal: P('#ffffff', '#ef4444', '#15803d', '#ffffff', '#dc2626'), blurb: 'A sweet little hook to keep you here.' },
   { id: 'poinsettia', min: 45, name: 'Poinsettia', kind: 'poinsettia', price: 520, rarity: 'Rare', pal: P('#fb7185', '#dc2626', '#166534', '#991b1b', '#facc15'), blurb: 'The star of every festive windowsill.' },
-  { id: 'bobo', min: 120, name: 'Bobo’s Heart', kind: 'heart', orn: true, fall: '#fbcfe8', price: 3000, rarity: 'Legendary', pal: P('#fff1f2', '#fbcfe8', '#f472b6', '#7a4a52', '#ffffff'), blurb: 'The rarest, prettiest tree in the grove. Made for Bobo.' },
+  // Soulmate pair: the rarest trees in the grove. `pair` links each to its other half.
+  { id: 'bobo', min: 120, name: 'Bobo’s Heart', kind: 'heart', orn: true, pair: 'heart', fall: '#fbcfe8', price: 3000, rarity: 'Soulmate', pal: P('#fff1f2', '#fbcfe8', '#f472b6', '#7a4a52', '#ffffff'), blurb: 'The rarest, prettiest tree in the grove. Made for Bobo.' },
+  { id: 'heart', min: 120, name: 'Jobo’s Heart', kind: 'heart', orn: true, pair: 'bobo', fall: '#bae6fd', price: 2800, rarity: 'Soulmate', pal: P('#f0f9ff', '#93c5fd', '#2563eb', '#334155', '#ffffff'), blurb: 'Her other half. Grow both and they glow together.' },
   { id: 'yule', min: 60, name: 'Yuletide Fir', kind: 'pine', orn: true, fall: '#ffffff', price: 720, rarity: 'Epic', pal: P('#4ade80', '#16a34a', '#14532d', '#6b4f3d', '#ef4444'), blurb: 'Baubles, a star and presents underneath.' },
   // Exclusive species are never sold; they are earned from monthly challenges and seasonal events.
   { id: 'lantern', min: 35, name: 'Lantern Maple', kind: 'round', dots: true, exclusive: true, price: 0, rarity: 'Exclusive', pal: P('#fde68a', '#f87171', '#b91c1c', '#4a2c2a', '#fef3c7'), blurb: 'Hung with small lights for those who kept going.' },
@@ -44,7 +45,7 @@ export const SPECIES = [
 export const BUYABLE = SPECIES.filter((s) => !s.exclusive);
 export const SP = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
 
-export const RARITY = { Common: 'text-white/50', Rare: 'text-cyan-300', Epic: 'text-violet-300', Legendary: 'text-amber-300', Exclusive: 'text-rose-300' };
+export const RARITY = { Common: 'text-white/50', Rare: 'text-cyan-300', Epic: 'text-violet-300', Legendary: 'text-amber-300', Exclusive: 'text-rose-300', Soulmate: 'soulmate-text' };
 
 export const TAGS = [
   { id: 'work', name: 'Work', color: '#34d399' },
@@ -130,6 +131,8 @@ export const ACHIEVEMENTS = [
   { id: 'pink', name: 'Pretty in Pink', desc: 'Own 5 pink plants', reward: 100, test: (L) => L.owned.filter((id) => PINK.includes(id)).length >= 5 },
   { id: 'festive', name: 'Festive Spirit', desc: 'Own the cane, poinsettia and fir', reward: 120, test: (L) => FESTIVE.every((id) => L.owned.includes(id)) },
   { id: 'bobo', name: 'Bobo’s Heart', desc: 'Grow a Bobo’s Heart', reward: 300, test: (L) => L.grown.includes('bobo') },
+  { id: 'jobo', name: 'Jobo’s Heart', desc: 'Grow a Jobo’s Heart', reward: 300, test: (L) => L.grown.includes('heart') },
+  { id: 'soul', name: 'Soulmates', desc: 'Grow both hearts', reward: 600, test: (L) => L.grown.includes('bobo') && L.grown.includes('heart') },
 ];
 
 // One quest is drawn from each slot every day.
