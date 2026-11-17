@@ -2,7 +2,7 @@
 
 A focus timer that grows a plant while you stay off your phone. Leave, and it withers. Every session lands in an isometric grove that fills up over days, weeks and years.
 
-Installable PWA, mobile-first, works offline, no account, no backend. All data stays in the browser's `localStorage`.
+Installable PWA, mobile-first, works offline, no account needed. Game data stays in the browser's `localStorage`; a small Vercel + Neon backend is being added for login and leaderboards.
 
 ## Run it
 
@@ -14,6 +14,46 @@ npm run preview  # serve the build
 ```
 
 Add `?demo` to the URL to run time at ×60 (a 25-minute session takes 25 seconds). Useful for trying the whole loop quickly.
+
+## Backend (Vercel + Neon Postgres)
+
+The app is hosted on Vercel, which also runs the backend: every file in `api/` becomes a serverless function at `/api/<name>`. Functions talk to Neon Postgres through `server/db.js`. Game data still lives in `localStorage`; the backend is the base for login and leaderboards.
+
+```
+phone/browser ──fetch('api/health')──▶ Vercel function (api/health.js) ──SQL over HTTPS──▶ Neon
+     (no secrets)                          (reads DATABASE_URL)
+```
+
+**Connect the database on Vercel** (no clone needed):
+1. Neon Console → project `blue-river-83534589` → **Connect** → copy the **pooled** connection string.
+2. Vercel → your project → **Settings → Environment Variables** → add `DATABASE_URL` with that value for Production and Preview.
+3. Redeploy, then open `https://<your-app>.vercel.app/api/health`. You should see `{"ok":true,"database":"connected",...}`.
+
+(Alternative: Vercel → **Storage / Integrations → Neon** links the project and sets `DATABASE_URL` for you.)
+
+**Locally:** `cp .env.example .env`, paste the strings, then `npm run db:check`. To run the API functions locally use `npx vercel dev` instead of `npm run dev`.
+
+Only import `server/db.js` from `api/` or `scripts/`, never from `src/`: everything in `src/` is shipped to the browser, and the connection string contains your database password.
+
+### Login and leaderboard (Neon Auth)
+
+Players can sign in (email + password) from **Journey → Leaderboard** and compare focus time over the last 7 or 30 days.
+
+- `src/lib/auth.js` signs people in with Neon Auth and gets a short-lived token (JWT).
+- `src/lib/sync.js` uploads finished sessions from the past week, with that token, to `POST /api/sessions`.
+- `api/sessions.js` checks the token against Neon Auth's public keys (`server/auth.js`), sanity-checks each session (max 180 min, not in the future, not longer than the real time that passed) and stores it. Re-sending the same session is ignored.
+- `api/leaderboard.js` sums the stored sessions per player.
+- Tables (`profiles`, `focus_sessions`) are created automatically on the first API call (`server/schema.js`).
+
+Setup:
+1. Copy the **Auth URL** from Neon Console → Auth → Configuration.
+2. Vercel → Settings → Environment Variables: add `NEON_AUTH_URL` (and `DATABASE_URL`), then redeploy.
+3. GitHub repo → Settings → Secrets and variables → Actions → **Variables**: add `NEON_AUTH_URL` and `API_URL` (your Vercel production URL, e.g. `https://foresty.vercel.app`), then re-run the Deploy workflow.
+4. Neon Auth → Domains: add `https://guanliang9.github.io` (and any Vercel URLs you sign in from).
+
+The app at `https://guanliang9.github.io/Foresty/` calls the API on Vercel; `server/cors.js` allows that origin. Without `NEON_AUTH_URL` the leaderboard card is hidden and the app works as before.
+
+Limits: the app can't fully prove a session was honest, since a determined player could craft fake requests within those limits. Fine for friends; for a public leaderboard, sessions would need to be timed on the server.
 
 ## Put it on your phone
 

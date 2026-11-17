@@ -24,7 +24,9 @@ self.addEventListener('message', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const r = e.request;
-  if (r.method !== 'GET' || new URL(r.url).origin !== location.origin) return;
+  const u = new URL(r.url);
+  // API responses are live data (scores, accounts): always go to the network, never cache.
+  if (r.method !== 'GET' || u.origin !== location.origin || u.pathname.includes('/api/')) return;
   e.respondWith((async () => {
     const c = await caches.open(CACHE);
     const nav = r.mode === 'navigate';

@@ -10,6 +10,8 @@ import Focus from './screens/Focus';
 import Grove from './screens/Grove';
 import Shop from './screens/Shop';
 import Journey from './screens/Journey';
+import { refreshAccount, useAccount } from './lib/auth';
+import { syncSessions } from './lib/sync';
 
 const TABS = [['focus', 'Focus', Timer], ['grove', 'Grove', Trees], ['shop', 'Nursery', Store], ['journey', 'Journey', Trophy]];
 const FLIES = [...Array(14)].map((_, i) => ({ left: `${(i * 37 + 11) % 100}%`, top: `${(i * 53 + 17) % 100}%`, '--dx': `${((i * 29) % 80) - 40}px`, '--dy': `${-30 - ((i * 17) % 70)}px`, '--t': `${9 + (i % 6) * 2}s`, animationDelay: `${-i * 1.3}s` }));
@@ -107,6 +109,11 @@ export default function App() {
   const s = useStore();
   const [tab, setTab] = useState('focus'), [settings, setSettings] = useState(false);
   const busy = !!s.active, cur = busy || s.harvest ? 'focus' : tab, idx = TABS.findIndex((t) => t[0] === cur);
+
+  // Check sign-in once at launch; after that, upload new finished sessions whenever the list changes.
+  const acc = useAccount();
+  useEffect(() => { refreshAccount(); }, []);
+  useEffect(() => { if (acc.status === 'in' && !s.active) syncSessions(); }, [acc.status, s.sessions.length, s.active]);
 
   useEffect(() => {
     const run = () => { if (document.hidden) return; const used = rollover(); if (used) toast(`Streak shield used · ${used} day${used > 1 ? 's' : ''} covered`); };
