@@ -27,6 +27,25 @@ export function ensureSchema() {
       primary key (user_id, client_id)
     )`;
     await sql`create index if not exists focus_sessions_ended_at_idx on focus_sessions (ended_at)`;
+    // A friendly competition: everyone who joins races on focus time between starts_at and ends_at.
+    await sql`create table if not exists competitions (
+      id bigint generated always as identity primary key,
+      code text not null unique,
+      name text not null,
+      created_by text not null references profiles(user_id) on delete cascade,
+      starts_at timestamptz not null,
+      ends_at timestamptz not null,
+      reward integer not null,
+      created_at timestamptz not null default now()
+    )`;
+    await sql`create table if not exists competition_members (
+      competition_id bigint not null references competitions(id) on delete cascade,
+      user_id text not null references profiles(user_id) on delete cascade,
+      joined_at timestamptz not null default now(),
+      reward_claimed_at timestamptz,
+      primary key (competition_id, user_id)
+    )`;
+    await sql`create index if not exists competition_members_user_idx on competition_members (user_id)`;
   })().catch((err) => { ready = null; throw err; });
   return ready;
 }

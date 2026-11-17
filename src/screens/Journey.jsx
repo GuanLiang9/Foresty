@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { Zap as Bolt, Flame, ShieldCheck, Check, Sprout, Trees, TreePine, Mountain, Clock, Zap, Crown, Infinity as Loop, Hourglass, Flower2, Sunrise, Moon, Sparkles, Shapes, Gem, Heart, Gift, Flower, Target, HeartHandshake } from 'lucide-react';
 import { Coin, toast } from '../components/ui';
 import Plant from '../components/Plant';
-import { LeaderboardCard, LeaderboardSheet } from '../components/Leaderboard';
 import { ACHIEVEMENTS, SP } from '../data';
 import { dayKey, dur } from '../lib/util';
 import { useStore, streakOf, bestStreak, okDays, xpOf, levelInfo, questsOf, claimQuest, challengesOf, eventCalendar, claimChallenge, todayMinutes, lifetime, haptic, sfx } from '../store';
@@ -10,7 +8,7 @@ import { useStore, streakOf, bestStreak, okDays, xpOf, levelInfo, questsOf, clai
 const ICON = { first: Sprout, t10: Trees, t50: TreePine, t200: Mountain, h5: Clock, h25: Zap, h100: Crown, s3: Flame, s7: Flame, s30: Loop, long: Hourglass, day5: Flower2, early: Sunrise, night: Moon, gold: Sparkles, col5: Shapes, colall: Gem, pink: Flower, festive: Gift, bobo: Heart, jobo: Heart, soul: HeartHandshake };
 
 export default function Journey() {
-  const s = useStore(), [board, setBoard] = useState(false);
+  const s = useStore();
   const lv = levelInfo(xpOf(s)), streak = streakOf(s), best = bestStreak(s), days = okDays(s), L = lifetime(s);
   const today = todayMinutes(s), goal = s.settings.goal, pct = Math.min(1, today / goal), C = 2 * Math.PI * 34;
   const quests = questsOf(s), got = Object.keys(s.ach).length;
@@ -56,9 +54,6 @@ export default function Journey() {
           <div><b className="tnum">{L.golden}</b> <span className="text-white/45">golden</span></div>
         </div>
       </div>
-
-      <LeaderboardCard onOpen={() => setBoard(true)} />
-      <LeaderboardSheet open={board} onClose={() => setBoard(false)} />
 
       <div className="mt-3 grid grid-cols-5 gap-3">
         <div className="glass anim-rise col-span-3 rounded-3xl p-4" style={{ animationDelay: '.1s' }}>

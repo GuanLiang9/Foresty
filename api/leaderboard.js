@@ -31,7 +31,17 @@ export default async function handler(req, res) {
     const top = rows.slice(0, 50).map((r) => ({ rank: r.rank, name: r.display_name, minutes: Math.floor(r.seconds / 60), plants: r.plants, me: r.user_id === user?.id }));
     const mine = user && rows.find((r) => r.user_id === user.id);
     const me = mine ? { rank: mine.rank, minutes: Math.floor(mine.seconds / 60), plants: mine.plants } : null;
-    return res.status(200).json({ period, top, me, signedIn: Boolean(user) });
+    // My focus minutes per local day, for the chart. `tz` is the browser's getTimezoneOffset() (minutes behind UTC).
+    let daily = [];
+    if (user) {
+      const tz = Math.max(-840, Math.min(840, Math.round(Number(req.query?.tz) || 0)));
+      const days = await sql`
+        select to_char((ended_at at time zone 'UTC') - (${tz}::int * interval '1 minute'), 'YYYY-MM-DD') as day, sum(seconds)::int as seconds
+        from focus_sessions where user_id = ${user.id} and ended_at >= ${since}
+        group by 1 order by 1`;
+      daily = days.map((d) => ({ day: d.day, minutes: Math.floor(d.seconds / 60) }));
+    }
+    return res.status(200).json({ period, top, me, daily, signedIn: Boolean(user) });
   } catch (err) {
     console.error('leaderboard failed:', err);
     return res.status(500).json({ error: 'Could not load the leaderboard' });

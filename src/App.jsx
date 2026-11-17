@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Timer, Trees, Store, Trophy, Download, Upload } from 'lucide-react';
+import { Timer, Trees, Store, Trophy, Medal, Download, Upload } from 'lucide-react';
 import Plant from './components/Plant';
 import { Sheet, Toggle, Stepper, Toasts, toast } from './components/ui';
 import { useGrowIn } from './lib/hooks';
@@ -10,10 +10,11 @@ import Focus from './screens/Focus';
 import Grove from './screens/Grove';
 import Shop from './screens/Shop';
 import Journey from './screens/Journey';
+import Ranks from './screens/Ranks';
 import { refreshAccount, useAccount } from './lib/auth';
 import { syncSessions } from './lib/sync';
 
-const TABS = [['focus', 'Focus', Timer], ['grove', 'Grove', Trees], ['shop', 'Nursery', Store], ['journey', 'Journey', Trophy]];
+const TABS = [['focus', 'Focus', Timer], ['grove', 'Grove', Trees], ['shop', 'Nursery', Store], ['journey', 'Journey', Trophy], ['ranks', 'Ranks', Medal]];
 const FLIES = [...Array(14)].map((_, i) => ({ left: `${(i * 37 + 11) % 100}%`, top: `${(i * 53 + 17) % 100}%`, '--dx': `${((i * 29) % 80) - 40}px`, '--dy': `${-30 - ((i * 17) % 70)}px`, '--t': `${9 + (i % 6) * 2}s`, animationDelay: `${-i * 1.3}s` }));
 
 function Backdrop({ deep }) {
@@ -145,9 +146,10 @@ export default function App() {
           {cur === 'grove' && <Grove go={setTab} />}
           {cur === 'shop' && <Shop />}
           {cur === 'journey' && <Journey />}
+          {cur === 'ranks' && <Ranks />}
         </div>
-        <nav className={`glass absolute inset-x-4 bottom-[var(--nav-b)] z-30 grid grid-cols-4 rounded-full p-1.5 transition-all duration-700 ${busy ? 'pointer-events-none translate-y-28 opacity-0' : ''}`}>
-          <span className="absolute inset-y-1.5 left-1.5 w-[calc(25%-3px)] rounded-full bg-white/10 transition-transform duration-500" style={{ transform: `translateX(${idx * 100}%)`, transitionTimingFunction: 'cubic-bezier(.3,1.4,.5,1)' }} />
+        <nav className={`glass absolute inset-x-4 bottom-[var(--nav-b)] z-30 grid grid-cols-5 rounded-full p-1.5 transition-all duration-700 ${busy ? 'pointer-events-none translate-y-28 opacity-0' : ''}`}>
+          <span className="absolute inset-y-1.5 left-1.5 w-[calc(20%-2.4px)] rounded-full bg-white/10 transition-transform duration-500" style={{ transform: `translateX(${idx * 100}%)`, transitionTimingFunction: 'cubic-bezier(.3,1.4,.5,1)' }} />
           {TABS.map(([id, label, Icon]) => (
             <button key={id} onClick={() => { setTab(id); haptic(5); }} className={`relative z-10 flex h-12 flex-col items-center justify-center gap-0.5 transition-colors ${cur === id ? 'text-emerald-300' : 'text-white/40'}`}>
               <Icon size={19} strokeWidth={cur === id ? 2.4 : 2} /><span className="text-[10px] font-medium">{label}</span>
