@@ -388,6 +388,9 @@ export function buyShield() {
 }
 
 // Claiming the day's third quest also grants a 2× coin boost for the next session.
+// Coins from outside the grove, e.g. a competition prize.
+export const addCoins = (n) => commit({ ...state, coins: state.coins + Math.max(0, Math.round(n)) });
+
 export function claimQuest(id) {
   const all = questsOf(state), q = all.find((x) => x.id === id);
   if (!q || !q.done || q.claimed) return null;
