@@ -15,6 +15,16 @@ npm run preview  # serve the build
 
 Add `?demo` to the URL to run time at ×60 (a 25-minute session takes 25 seconds). Useful for trying the whole loop quickly.
 
+## Database (Neon Postgres)
+
+The app still runs fully on `localStorage`. A Neon Postgres connection is wired in for server-side code, ready for syncing data later.
+
+1. In the [Neon Console](https://console.neon.tech), open project `blue-river-83534589` and click **Connect** to copy the connection strings.
+2. `cp .env.example .env` and paste them into `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
+3. `npm run db:check` should print `Connected to Neon`.
+
+`server/db.js` exports a `sql` client. Only import it from Node scripts or serverless functions, never from `src/`: the connection string contains your database password, and anything in `src/` ends up in the public browser bundle.
+
 ## Put it on your phone
 
 Installing a PWA needs HTTPS, so host the build. The included workflow deploys to GitHub Pages on every push to `main`:
