@@ -7,6 +7,7 @@ import { execSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { PGlite } from '@electric-sql/pglite';
+import { fakeSql } from './fake-sql.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -32,7 +33,7 @@ process.env.NEON_AUTH_URL = `http://localhost:${AUTH}`;
 /* --- real API handlers on an in-memory Postgres --- */
 const pg = new PGlite();
 const { setSqlForTests } = await import('../server/db.js');
-setSqlForTests((strings, ...vals) => { let q = strings[0]; vals.forEach((_, i) => { q += `$${i + 1}${strings[i + 1]}`; }); return pg.query(q, vals).then((r) => r.rows); });
+setSqlForTests(fakeSql(pg));
 const handlers = {};
 for (const n of ['auth', 'state', 'sessions', 'leaderboard']) handlers[n] = (await import(`../api/${n}.js`)).default;
 let offline = new Set(); // contexts whose API calls we cut

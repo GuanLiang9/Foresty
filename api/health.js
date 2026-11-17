@@ -28,8 +28,13 @@ export default async function handler(req, res) {
 
   try {
     const sql = getSql();
+    const t = Date.now();
     const [row] = await sql`select now() as time`;
-    return res.status(200).json({ ok: true, database: 'connected', host, time: row.time });
+    // Speed check: every query is a trip from the Vercel function to Neon. If the two are far apart
+    // (say Vercel in Washington "iad1" and Neon in Singapore "ap-southeast-1") each trip adds ~200 ms.
+    // Compare these two and pick the matching Vercel region in Settings > Functions if they differ.
+    const neonRegion = /\.([a-z]{2}-[a-z]+-\d)\./.exec(host || '')?.[1] || null;
+    return res.status(200).json({ ok: true, database: 'connected', host, time: row.time, queryMs: Date.now() - t, neonRegion, functionRegion: process.env.VERCEL_REGION || null });
   } catch (err) {
     console.error('health check failed:', err);
     // The host name is not secret; the user/password part of the URL is never returned.

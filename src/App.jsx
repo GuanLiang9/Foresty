@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Timer, Trees, Store, Trophy, Medal, Download, Upload } from 'lucide-react';
 import Plant from './components/Plant';
 import { Sheet, Toggle, Stepper, Toasts, toast } from './components/ui';
@@ -7,12 +7,20 @@ import * as audio from './lib/audio';
 import { APP } from './data';
 import { useStore, getState, set, setSetting, rollover, exportData, importData, resetAll, haptic, SPEED } from './store';
 import Focus from './screens/Focus';
-import Grove from './screens/Grove';
-import Shop from './screens/Shop';
-import Journey from './screens/Journey';
-import Ranks from './screens/Ranks';
 import { refreshAccount, useAccount } from './lib/auth';
 import { syncSessions, syncGame, pushIfChanged, useSyncStatus } from './lib/sync';
+
+// Code splitting: the app opens on Focus, so only that screen is in the first download. The other tabs are
+// separate files, fetched right after the app is on screen (see preloadScreens), so switching tabs stays instant
+// and they are cached for offline use.
+const loaders = {
+  grove: () => import('./screens/Grove'),
+  shop: () => import('./screens/Shop'),
+  journey: () => import('./screens/Journey'),
+  ranks: () => import('./screens/Ranks'),
+};
+const Grove = lazy(loaders.grove), Shop = lazy(loaders.shop), Journey = lazy(loaders.journey), Ranks = lazy(loaders.ranks);
+export const preloadScreens = () => Promise.all(Object.values(loaders).map((f) => f().catch(() => {})));
 
 const TABS = [['focus', 'Focus', Timer], ['grove', 'Grove', Trees], ['shop', 'Nursery', Store], ['journey', 'Journey', Trophy], ['ranks', 'Ranks', Medal]];
 const FLIES = [...Array(14)].map((_, i) => ({ left: `${(i * 37 + 11) % 100}%`, top: `${(i * 53 + 17) % 100}%`, '--dx': `${((i * 29) % 80) - 40}px`, '--dy': `${-30 - ((i * 17) % 70)}px`, '--t': `${9 + (i % 6) * 2}s`, animationDelay: `${-i * 1.3}s` }));
@@ -164,11 +172,13 @@ export default function App() {
       <Backdrop deep={busy} />
       <main className="relative mx-auto h-full max-w-md">
         <div key={cur} className="anim-fade h-full">
-          {cur === 'focus' && <Focus onSettings={() => setSettings(true)} go={setTab} />}
-          {cur === 'grove' && <Grove go={setTab} />}
-          {cur === 'shop' && <Shop />}
-          {cur === 'journey' && <Journey />}
-          {cur === 'ranks' && <Ranks />}
+          <Suspense fallback={null}>
+            {cur === 'focus' && <Focus onSettings={() => setSettings(true)} go={setTab} />}
+            {cur === 'grove' && <Grove go={setTab} />}
+            {cur === 'shop' && <Shop />}
+            {cur === 'journey' && <Journey />}
+            {cur === 'ranks' && <Ranks />}
+          </Suspense>
         </div>
         <nav className={`glass absolute inset-x-4 bottom-[var(--nav-b)] z-30 grid grid-cols-5 rounded-full p-1.5 transition-all duration-700 ${busy ? 'pointer-events-none translate-y-28 opacity-0' : ''}`}>
           <span className="absolute inset-y-1.5 left-1.5 w-[calc(20%-2.4px)] rounded-full bg-white/10 transition-transform duration-500" style={{ transform: `translateX(${idx * 100}%)`, transitionTimingFunction: 'cubic-bezier(.3,1.4,.5,1)' }} />

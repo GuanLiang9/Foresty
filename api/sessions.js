@@ -27,6 +27,8 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const schema = ensureSchema(); // overlaps with the sign-in check below
+  schema.catch(() => {});
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: 'Sign in first' });
 
@@ -35,12 +37,13 @@ export default async function handler(req, res) {
   const rows = list.map((x) => clean(x, now)).filter(Boolean);
 
   try {
-    await ensureSchema();
+    await schema;
     const sql = getSql();
-    await upsertProfile(user);
+    const queries = [upsertProfile(user)];
     if (rows.length) {
       // unnest turns the arrays into rows, so all sessions go in with one query.
-      await sql`insert into focus_sessions (user_id, client_id, started_at, ended_at, seconds, species)
+      // "on conflict do nothing" makes re-sending the same session harmless, so leaderboard totals never double count.
+      queries.push(sql`insert into focus_sessions (user_id, client_id, started_at, ended_at, seconds, species)
         select ${user.id}, * from unnest(
           ${rows.map((r) => r.id)}::text[],
           ${rows.map((r) => r.start)}::timestamptz[],
@@ -48,8 +51,10 @@ export default async function handler(req, res) {
           ${rows.map((r) => r.secs)}::int[],
           ${rows.map((r) => r.species)}::text[]
         )
-        on conflict (user_id, client_id) do nothing`;
+        on conflict (user_id, client_id) do nothing`);
     }
+    // Profile + sessions in one transaction: one round trip to Neon.
+    await sql.transaction(queries);
     return res.status(200).json({ ok: true, accepted: rows.length, rejected: list.length - rows.length });
   } catch (err) {
     console.error('sessions upload failed:', err);

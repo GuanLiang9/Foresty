@@ -26,16 +26,21 @@ export const rewardFor = (days) => Math.round((100 * days ** 0.75) / 10) * 10;
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newCode = () => Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
 
-async function standings(sql, c, meId) {
-  const rows = await sql`
-    select m.user_id, p.display_name,
-           coalesce(sum(f.seconds), 0)::int as seconds, count(f.client_id)::int as plants
-    from competition_members m
-    join profiles p on p.user_id = m.user_id
-    left join focus_sessions f on f.user_id = m.user_id and f.ended_at >= ${c.starts_at} and f.ended_at < ${c.ends_at}
-    where m.competition_id = ${c.id}
-    group by m.user_id, p.display_name
-    order by seconds desc, p.display_name`;
+// Everyone's focus time inside each race's window, for the races with these ids.
+// Works for one race or many at once, so the race list needs one query instead of one per race.
+const standingsRows = (sql, ids) => sql`
+  select m.competition_id::text as cid, m.user_id, p.display_name,
+         coalesce(sum(f.seconds), 0)::int as seconds, count(f.client_id)::int as plants
+  from competition_members m
+  join competitions c on c.id = m.competition_id
+  join profiles p on p.user_id = m.user_id
+  left join focus_sessions f on f.user_id = m.user_id and f.ended_at >= c.starts_at and f.ended_at < c.ends_at
+  where m.competition_id = any(${ids.map(String)}::bigint[])
+  group by m.competition_id, m.user_id, p.display_name
+  order by m.competition_id, seconds desc, p.display_name`;
+
+// Turns one race's rows (already sorted, most focus first) into ranked standings.
+function rankRows(rows, meId) {
   const top = rows[0]?.seconds || 0;
   let rank = 0, prev = -1;
   return rows.map((r, i) => {
@@ -43,6 +48,10 @@ async function standings(sql, c, meId) {
     // Winners: everyone tied for first, and only if they focused at all.
     return { rank, name: r.display_name, minutes: Math.floor(r.seconds / 60), plants: r.plants, me: r.user_id === meId, leader: top > 0 && r.seconds === top };
   });
+}
+
+async function standings(sql, c, meId) {
+  return rankRows(await standingsRows(sql, [c.id]), meId);
 }
 
 function summary(c, board, member) {
@@ -67,13 +76,15 @@ export default async function handler(req, res) {
   if (cors(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
 
+  const schema = ensureSchema(); // overlaps with the sign-in check below
+  schema.catch(() => {});
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: 'Sign in first' });
   const op = req.query?.op;
   const body = req.body || {};
 
   try {
-    await ensureSchema();
+    await schema;
     const sql = getSql();
 
     if (req.method === 'GET' && op === 'list') {
@@ -82,15 +93,25 @@ export default async function handler(req, res) {
         join competition_members m on m.competition_id = c.id and m.user_id = ${user.id}
         order by c.ends_at < now(), c.ends_at desc
         limit 30`;
-      const list = await Promise.all(mine.map(async (c) => summary(c, await standings(sql, c, user.id), c)));
+      // One query for every race's standings (it used to be one query per race).
+      const rows = mine.length ? await standingsRows(sql, mine.map((c) => c.id)) : [];
+      const byRace = new Map();
+      for (const r of rows) { if (!byRace.has(r.cid)) byRace.set(r.cid, []); byRace.get(r.cid).push(r); }
+      const list = mine.map((c) => summary(c, rankRows(byRace.get(String(c.id)) || [], user.id), c));
       return res.status(200).json({ competitions: list });
     }
 
     if (req.method === 'GET' && op === 'get') {
-      const c = await getCompetition(sql, Number(req.query.id));
-      const [member] = c ? await sql`select * from competition_members where competition_id = ${c.id} and user_id = ${user.id}` : [];
+      const id = Math.floor(Number(req.query.id));
+      if (!Number.isSafeInteger(id) || id < 1) return res.status(404).json({ error: 'Competition not found' });
+      // The race, my membership and the standings in one round trip.
+      const [[c], [member], rows] = await sql.transaction([
+        sql`select * from competitions where id = ${id}`,
+        sql`select * from competition_members where competition_id = ${id} and user_id = ${user.id}`,
+        standingsRows(sql, [id]),
+      ], { readOnly: true });
       if (!c || !member) return res.status(404).json({ error: 'Competition not found' });
-      const board = await standings(sql, c, user.id);
+      const board = rankRows(rows, user.id);
       return res.status(200).json({ competition: summary(c, board, member), standings: board });
     }
 
