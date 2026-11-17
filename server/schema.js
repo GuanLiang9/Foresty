@@ -45,6 +45,14 @@ export function ensureSchema() {
       reward_claimed_at timestamptz,
       primary key (competition_id, user_id)
     )`;
+    // One row per player: their whole game (plants, history, coins, settings) so every device can sync.
+    // version goes up by one on every save; a save only works if the sender saw the latest version.
+    await sql`create table if not exists game_state (
+      user_id text primary key references profiles(user_id) on delete cascade,
+      data jsonb not null,
+      version integer not null default 1,
+      updated_at timestamptz not null default now()
+    )`;
     await sql`create index if not exists competition_members_user_idx on competition_members (user_id)`;
   })().catch((err) => { ready = null; throw err; });
   return ready;

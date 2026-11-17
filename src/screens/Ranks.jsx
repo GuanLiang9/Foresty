@@ -3,7 +3,7 @@ import { Trophy, Swords, Copy, LogOut, Crown, Plus } from 'lucide-react';
 import { Coin, Sheet, toast } from '../components/ui';
 import { DailyBars, RaceBars } from '../components/Charts';
 import { useAccount, signIn, signUp, signOut } from '../lib/auth';
-import { syncSessions } from '../lib/sync';
+import { syncSessions, signOutSynced } from '../lib/sync';
 import { api } from '../lib/api';
 import { dur } from '../lib/util';
 import { addCoins, haptic, sfx } from '../store';
@@ -28,7 +28,7 @@ function SignInForm() {
   };
   return (
     <form onSubmit={submit} className="glass anim-rise mt-5 space-y-3 rounded-3xl p-5">
-      <p className="text-sm leading-relaxed text-white/55">Sign in to climb the leaderboard and race friends. Your grove stays on this device; only finished sessions from the past week are shared.</p>
+      <p className="text-sm leading-relaxed text-white/55">Sign in to climb the leaderboard and race friends. Your plants, history and coins are saved to your account and sync to every device you sign in on. The leaderboard only sees finished sessions from the past week.</p>
       {mode === 'up' && <input className={input} placeholder="Display name" maxLength={24} required value={name} onChange={(e) => setName(e.target.value)} autoComplete="nickname" />}
       <input className={input} type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
       <input className={input} type="password" placeholder="Password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'up' ? 'new-password' : 'current-password'} />
@@ -205,7 +205,7 @@ export default function Ranks() {
     <div className="no-scrollbar h-full overflow-y-auto px-5 pb-32 pt-[calc(env(safe-area-inset-top)+14px)]">
       <div className="flex items-center justify-between">
         <h1 className="anim-rise text-[34px] font-semibold leading-none tracking-tighter">Ranks</h1>
-        {acc.status === 'in' && <button onClick={() => { signOut(); toast('Signed out'); }} aria-label="Sign out" className="press flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs text-white/60"><LogOut size={14} />{acc.user?.name || 'Sign out'}</button>}
+        {acc.status === 'in' && <button onClick={() => { signOutSynced(); toast('Signed out'); }} aria-label="Sign out" className="press flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs text-white/60"><LogOut size={14} />{acc.user?.name || 'Sign out'}</button>}
       </div>
       {acc.status === 'off' && <p className="mt-6 text-sm text-white/55">The leaderboard is not set up on this build yet.</p>}
       {acc.status === 'loading' && <p className="py-10 text-center text-sm text-white/40">Loading…</p>}

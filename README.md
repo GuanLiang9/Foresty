@@ -2,7 +2,7 @@
 
 A focus timer that grows a plant while you stay off your phone. Leave, and it withers. Every session lands in an isometric grove that fills up over days, weeks and years.
 
-Installable PWA, mobile-first, works offline, no account needed. Game data stays in the browser's `localStorage`; a small Vercel + Neon backend is being added for login and leaderboards.
+Installable PWA, mobile-first, works offline, no account needed. Game data lives in the browser's `localStorage`; signed-in players also get it synced to their account (Vercel + Neon) so a phone and a browser show the same grove.
 
 ## Run it
 
@@ -17,7 +17,7 @@ Add `?demo` to the URL to run time at ×60 (a 25-minute session takes 25 seconds
 
 ## Backend (Vercel + Neon Postgres)
 
-The app is hosted on Vercel, which also runs the backend: every file in `api/` becomes a serverless function at `/api/<name>`. Functions talk to Neon Postgres through `server/db.js`. Game data still lives in `localStorage`; the backend is the base for login and leaderboards.
+The app is hosted on Vercel, which also runs the backend: every file in `api/` becomes a serverless function at `/api/<name>`. Functions talk to Neon Postgres through `server/db.js`. Game data still lives in `localStorage` first; the backend powers login, leaderboards and cloud sync.
 
 ```
 phone/browser ──fetch('api/health')──▶ Vercel function (api/health.js) ──SQL over HTTPS──▶ Neon
@@ -57,7 +57,26 @@ Limits: the app can't fully prove a session was honest, since a determined playe
 
 **Competitions** (`api/competitions.js`): from Ranks → Races, anyone signed in can start a race lasting 1, 3, 7, 14 or 30 days. The creator gets a 6-character invite code to share; friends join with it (up to 50 players). Standings are the total focus time of every finished session that ended inside the race window. When the timer runs out, whoever has the most focus time (ties share the win, and nobody wins if nobody focused) can claim the prize once: 100 coins for a day, 430 for a week, 1280 for a month. The server marks the prize as claimed, so it can't be collected twice, and the app adds the coins to the grove.
 
-Tables: `profiles`, `focus_sessions`, `competitions`, `competition_members` (all created automatically).
+Tables: `profiles`, `focus_sessions`, `competitions`, `competition_members`, `game_state` (all created automatically, no migration to run).
+
+### Cloud sync (same grove on phone and browser)
+
+An installed PWA and the same site in a browser have **separate storage** (on iOS too), so a grove only follows you through your account. Signed in, `src/lib/sync.js` keeps one copy of your game per account in the `game_state` table (`api/state.js`: `GET` to pull, `PUT` to save; a save only succeeds if nobody else saved since you pulled, otherwise the app pulls and merges again). It syncs on sign-in, when the app returns to the front, once a minute, and a few seconds after each change. Offline play works as before and uploads later. Nothing extra to set up: the table is created on first use.
+
+Merge rules (`src/lib/merge.js`, tested in `tests/merge.test.mjs`):
+
+| Data | Rule |
+| --- | --- |
+| Plants and history (sessions), owned plants/sounds, tags, milestones, claimed challenges, shield days | **Union**: everything from both sides is kept; a session is the same one if id, start, end and species match, so it is never duplicated |
+| Deleted sessions | Remembered, so deleting on one device is not undone by the other |
+| Coins, boosts, shield count | Cloud value **plus only what this device changed since its last sync**, so two devices' earnings add up and nothing is counted twice |
+| Settings, selected plant, wish | Last change wins |
+| Daily quests | Newer day wins; same day merges claims |
+| Running session, unspent harvest, Pomodoro timer | Stay on the device |
+
+An empty side can never wipe a full one. Signing into a *different* account on a device starts that device from the new account's grove, never mixing the two. **Erase all data** only clears the device; signing in again brings the cloud copy back. The leaderboard upload is unchanged and idempotent (same session id means the same row), so merging does not double count.
+
+`npm test` runs the merge rules. `npm run test:e2e` drives two simulated devices in Chromium (sign-up with local data, fresh sign-in, offline then online, simultaneous edits, leaderboard dedupe, account switch) against an in-memory Postgres, with no secrets.
 
 
 ## Put it on your phone
@@ -117,7 +136,7 @@ An exclusive plant you already own pays 300 coins instead.
 
 - A web app cannot see which other app you opened, only that this one was hidden. Locking the screen counts as leaving, which is why the wake lock is on by default.
 - iOS does not expose vibration to web apps, and only delivers notifications to an installed PWA.
-- Nothing syncs between devices. Use Settings → Backup to move a grove.
+- Without an account nothing syncs between devices. Sign in (Ranks tab) to sync, or use Settings → Backup to move a grove by file.
 
 ## Stack
 
