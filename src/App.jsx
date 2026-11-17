@@ -5,12 +5,14 @@ import { Sheet, Toggle, Stepper, Toasts, toast } from './components/ui';
 import { useGrowIn } from './lib/hooks';
 import * as audio from './lib/audio';
 import { APP } from './data';
-import { useStore, getState, set, setSetting, rollover, exportData, importData, resetAll, haptic, SPEED } from './store';
+import { useStore, getState, set, setSetting, rollover, exportData, importData, resetAll, quickStart, haptic, sfx, SPEED } from './store';
 import Focus from './screens/Focus';
 import Grove from './screens/Grove';
 import Shop from './screens/Shop';
 import Journey from './screens/Journey';
 import Ranks from './screens/Ranks';
+import Glance from './components/Glance';
+import { GO } from './lib/launch';
 import { refreshAccount, useAccount } from './lib/auth';
 import { syncSessions, syncGame, pushIfChanged, useSyncStatus } from './lib/sync';
 
@@ -111,8 +113,12 @@ function Settings({ open, onClose }) {
 
 export default function App() {
   const s = useStore();
-  const [tab, setTab] = useState('focus'), [settings, setSettings] = useState(false);
+  const [tab, setTab] = useState(GO === 'grove' ? 'grove' : 'focus'), [settings, setSettings] = useState(false), [glance, setGlance] = useState(GO === 'widget');
   const busy = !!s.active, cur = busy || s.harvest ? 'focus' : tab, idx = TABS.findIndex((t) => t[0] === cur);
+
+  // Opened from a "Start focus" / "Pomodoro" shortcut: go straight into a session (the first 10 seconds can still be cancelled).
+  useEffect(() => { if (GO === 'focus' || GO === 'pomo') quickStart(GO === 'pomo' ? 'pomo' : null); }, []);
+  const startFromGlance = (mode) => { setGlance(false); audio.unlock(); if (quickStart(mode)) { sfx('start'); haptic(15); } };
 
   // Check sign-in once at launch; after that, upload new finished sessions whenever the list changes.
   const acc = useAccount();
@@ -164,7 +170,7 @@ export default function App() {
       <Backdrop deep={busy} />
       <main className="relative mx-auto h-full max-w-md">
         <div key={cur} className="anim-fade h-full">
-          {cur === 'focus' && <Focus onSettings={() => setSettings(true)} go={setTab} />}
+          {cur === 'focus' && <Focus onSettings={() => setSettings(true)} onGlance={() => { setGlance(true); haptic(5); }} go={setTab} />}
           {cur === 'grove' && <Grove go={setTab} />}
           {cur === 'shop' && <Shop />}
           {cur === 'journey' && <Journey />}
@@ -180,6 +186,7 @@ export default function App() {
         </nav>
       </main>
       <Settings open={settings} onClose={() => setSettings(false)} />
+      <Glance open={glance && !busy && !s.harvest} onClose={() => setGlance(false)} onStart={startFromGlance} onGrove={() => { setGlance(false); setTab('grove'); }} />
       <Toasts />
       {!s.onboarded && <Welcome />}
     </div>

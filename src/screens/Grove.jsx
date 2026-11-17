@@ -9,7 +9,7 @@ const KINDS = ['day', 'week', 'month', 'year'];
 const VW = 400, VH = 380, TOP = 120;
 const clock = (t) => new Date(t).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-function Island({ list, seed, sel, onPick }) {
+export function Island({ list, seed, sel, onPick }) {
   const shown = list.slice(-81);
   const n = cl(Math.ceil(Math.sqrt(shown.length)), 4, 9), A = 190 / n, B = A / 2;
   const { cells, decor } = useMemo(() => {

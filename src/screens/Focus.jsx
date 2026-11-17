@@ -239,7 +239,7 @@ function Harvest({ h, owned, streak, onDone }) {
   );
 }
 
-export default function Focus({ onSettings, go }) {
+export default function Focus({ onSettings, onGlance, go }) {
   const s = useStore(), a = s.active, cfg = s.settings;
   const [now, setNow] = useState(Date.now());
   const [result, setResult] = useState(null);
@@ -393,12 +393,12 @@ export default function Focus({ onSettings, go }) {
   return (
     <div className={`flex h-full flex-col px-5 pt-[calc(env(safe-area-inset-top)+14px)] ${a ? 'pb-[calc(env(safe-area-inset-bottom)+20px)]' : 'pb-[calc(var(--nav-b)+80px)] short:pb-[calc(var(--nav-b)+72px)]'}`}>
       <header className={`flex items-center justify-between transition-all duration-700 ${a ? 'pointer-events-none -translate-y-3 opacity-0' : ''}`}>
-        <div className="glass flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold">
+        <button onClick={onGlance} aria-label="Today at a glance" className="glass press flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold">
           <Flame size={16} className={streak ? 'text-orange-400' : 'text-white/30'} fill={streak ? 'currentColor' : 'none'} />
           <span className="tnum">{streak}</span>
           <span className="mx-1 h-3.5 w-px bg-white/15" />
           <span className="tnum font-medium text-white/60">{dur(today)}<span className="text-white/30"> / {dur(cfg.goal)}</span></span>
-        </div>
+        </button>
         <div className="flex gap-2">
           <button onClick={() => go('shop')} className="glass press flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold"><Coin /><span className="tnum">{s.coins}</span></button>
           <button onClick={onSettings} aria-label="Settings" className="glass press flex h-10 w-10 items-center justify-center rounded-full"><Settings2 size={18} /></button>

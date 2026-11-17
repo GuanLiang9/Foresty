@@ -15,6 +15,16 @@ npm run preview  # serve the build
 
 Add `?demo` to the URL to run time at ×60 (a 25-minute session takes 25 seconds). Useful for trying the whole loop quickly.
 
+## Shortcuts and the Today card ("widgets")
+
+A web app cannot put a real widget on the iPhone or Android home screen: iOS only allows that for native apps (WidgetKit), and the manifest `widgets` field only works on Windows. What the app does instead:
+
+- **Today card**: tap the streak pill at the top of the Focus screen for today's island, streak and goal progress, with one-tap start buttons (`src/components/Glance.jsx`). Works everywhere, including the installed iPhone app.
+- **App icon shortcuts**: the `shortcuts` list in `public/manifest.webmanifest`. Long-press the installed icon on Android (or right-click it on desktop Chrome/Edge) for Start focus, Pomodoro round, Today at a glance and My grove. iOS ignores this list.
+- **Quick-start links**: the shortcuts are plain URLs handled in `src/lib/launch.js`: `?go=focus`, `?go=pomo`, `?go=grove`, `?go=widget`. On iPhone a link opens in Safari, not in the installed app, and the two keep separate storage, so sign in for cloud sync if you use them there.
+
+Android reads shortcuts when the app is installed, so reinstall (or wait for Chrome's periodic manifest refresh) to see changes.
+
 ## Backend (Vercel + Neon Postgres)
 
 The app is hosted on Vercel, which also runs the backend: every file in `api/` becomes a serverless function at `/api/<name>`. Functions talk to Neon Postgres through `server/db.js`. Game data still lives in `localStorage` first; the backend powers login, leaderboards and cloud sync.

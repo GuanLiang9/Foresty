@@ -272,6 +272,15 @@ export function startSession(note = '') {
   commit({ ...state, ...extra, active: { start: now, seen: now, pausedAt: null, pausedMs: 0, planned, mode: c.mode, species: pomo ? pomoSpecies(state) : state.selected, tag: c.tag, note: note.trim(), deep: c.deep } });
 }
 
+// One-tap start from an app icon shortcut or the Today card (see lib/launch.js). `mode` switches mode first.
+// Does nothing while a session is running, minutes are waiting to be planted, or the welcome screen is up.
+export function quickStart(mode) {
+  if (!state.onboarded || state.active || state.harvest) return false;
+  if (mode && mode !== state.settings.mode) setSetting('mode', mode);
+  startSession('');
+  return true;
+}
+
 /* ---------- pomodoro ---------- */
 
 // A round grows the chosen tree only if the round is long enough for it; otherwise the biggest owned tree that fits.
