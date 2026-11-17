@@ -32,6 +32,8 @@ If players tie for first, they all win. Open the finished race and tap **Claim**
 
 Tip for long races: open the app at least once a week while signed in, so all your focus time gets counted.
 
+**Faster.** The app opens straight from your phone's saved copy, even on a weak signal, and only downloads the parts that changed after an update. Switching tabs is instant, and syncing, the leaderboard and races respond faster.
+
 ## Focus modes
 
 The Focus screen has three modes:
@@ -160,11 +162,11 @@ Add `?demo` to the URL (e.g. `http://localhost:5173/?demo`) to run time at ×60:
 
 | Endpoint | What it does |
 | --- | --- |
-| `GET /api/health` | Checks the API can reach Neon. Returns `{"ok":true,"database":"connected",...}`, or a plain-English reason it can't (without leaking the password) |
+| `GET /api/health` | Checks the API can reach Neon. Returns `{"ok":true,"database":"connected",...}` with `queryMs`, `neonRegion` and `functionRegion` for speed checks, or a plain-English reason it can't connect (without leaking the password) |
 | `/api/auth?op=sign-up\|sign-in\|sign-out\|session` | Proxy to Neon Auth (see below) |
 | `POST /api/sessions` | A signed-in player uploads finished sessions from the last week |
 | `GET /api/leaderboard?period=week\|month&tz=<offset>` | Top 50 players by focus time over 7 or 30 days. If signed in, also your rank and your minutes per day (in your time zone) for the chart |
-| `GET /api/state` / `PUT /api/state` | Pull or save your whole game for cloud sync. A save only succeeds if nobody saved since you pulled (else `409`, and the app pulls and merges again) |
+| `GET /api/state` / `PUT /api/state` | Pull or save your whole game for cloud sync. `GET ?known=<version>` answers `{ unchanged: true }` without the data when nothing changed. A save only succeeds if nobody saved since you pulled (else `409`, and the app pulls and merges again) |
 | `GET /api/competitions?op=list` | Races you're in, with your rank and the current leader |
 | `GET /api/competitions?op=get&id=<id>` | One race with full standings (members only) |
 | `POST /api/competitions?op=create` | Start a race: `{ name, days }` (1–30). Returns its invite code |
@@ -233,6 +235,21 @@ Merge rules live in `src/lib/merge.js` (pure functions, tested in `tests/merge.t
 
 An empty side can never wipe a full one. Signing in to a *different* account on a device starts that device from the new account's grove instead of mixing the two. **Erase all data** only clears the device; signing in again brings the cloud copy back. Demo mode (`?demo`) never syncs.
 
+### Performance
+
+What keeps the app quick (from PR #10):
+
+| Area | What it does |
+| --- | --- |
+| Offline cache (`public/sw.js`) | Files in `assets/` have a content hash in their name, so they're served straight from the cache. Page loads try the network for up to 2 s, then open the saved copy. Only files not cached yet are downloaded |
+| Code splitting (`src/App.jsx`, `vite.config.js`) | Only the Focus tab loads first; the other tabs load in the background once the app is idle. React gets its own file, so an app update doesn't re-download it |
+| Fewer database trips | Each query is one HTTPS request to Neon, so related queries are sent together with `sql.transaction([...])` (schema setup, profile + save, session upload, leaderboard + chart, race details) |
+| Lighter sync | The once-a-minute check sends the version it has (`GET /api/state?known=N`) and gets back "unchanged" instead of the whole grove |
+
+**Keep Vercel and Neon in the same region.** Every query travels from the Vercel function to Neon, so if they're far apart each trip adds roughly 200 ms. Open `/api/health` and compare `neonRegion` with `functionRegion`. If they differ, change Vercel → **Settings → Functions → Function Region** to the nearest match (for Neon in `ap-southeast-1`, pick Singapore, `sin1`) and redeploy.
+
+`npm run bench` measures it: app load time on a throttled "slow 4G" phone, and the number of database round trips per API call. Set `BENCH_ROOT=/path/to/other/checkout` to compare two versions.
+
 ## Setup
 
 ### 1. Environment variables
@@ -258,6 +275,7 @@ An empty side can never wipe a full one. Signing in to a *different* account on 
 2. **Settings → Environment Variables**: add `DATABASE_URL` and `NEON_AUTH_URL`, ticking both **Production** and **Preview**.
 3. **Redeploy**. New env vars only apply to new deployments.
 4. Open `https://<your-app>.vercel.app/api/health`. You should see `"database":"connected"`.
+5. Check that `functionRegion` matches `neonRegion` in that response. If not, see [Keep Vercel and Neon in the same region](#performance).
 
 (Alternative for step 2: Vercel → **Storage / Integrations → Neon** links the project and sets `DATABASE_URL` for you.)
 
@@ -281,8 +299,9 @@ With `vercel dev` the app and API share one address, so `API_URL` isn't needed. 
 Tests (no database or secrets needed):
 
 ```bash
-npm test          # merge rules for cloud sync
+npm test          # unit tests: sync merge rules, API handlers, CORS
 npm run test:e2e  # two simulated devices in Chromium against an in-memory Postgres (PGlite)
+npm run bench     # load time and database round trips (see Performance)
 ```
 
 ## Troubleshooting
@@ -294,6 +313,7 @@ npm run test:e2e  # two simulated devices in Chromium against an in-memory Postg
 | App on Pages can't reach the API | Check the `API_URL` variable is your Vercel URL with no trailing slash, then deploy again |
 | Pages still shows old code after a fix | The Deploy workflow cancels older runs when a new one starts, and **re-running an old run deploys that old commit**. Re-run the newest run on `main`, or start a fresh one with **Run workflow** |
 | Sign-in fails with a domain/origin error | Add the site to Neon Auth → Domains |
+| API feels slow (each call takes 0.5 s or more) | Open `/api/health`. If `functionRegion` and `neonRegion` don't match, move the Vercel function region next to Neon and redeploy |
 
 ## Stack
 
