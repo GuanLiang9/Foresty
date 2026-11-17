@@ -11,6 +11,13 @@ export const MIN_SW = 10 * 60; // Free focus minimum before anything can be plan
 export const PAUSE_MAX = (5 * 60 * 1000) / SPEED; // total pause allowance per session (ms)
 const KEY = 'evergrove:v1';
 
+// Pomodoro: focus rounds separated by short breaks, with a long break after every few rounds.
+export const POMO_DEFAULTS = { pomoWork: 25, pomoShort: 5, pomoLong: 15, pomoEvery: 4, pomoAutoBreak: true, pomoAutoWork: false };
+// round: focus rounds finished in this cycle. phase: what comes next. until: when the running break ends (null = not started).
+const POMO_IDLE = { round: 0, phase: 'work', until: null, pausedAt: null };
+// "Plant a tree" and Pomodoro both count down to a fixed length; only Free focus counts up.
+export const isTimed = (mode) => mode !== 'stopwatch';
+
 const defaults = () => ({
   coins: 0,
   owned: ['oak', 'pine'],
@@ -19,7 +26,8 @@ const defaults = () => ({
   wish: 'bobo',
   sessions: [],
   tags: TAGS,
-  settings: { mode: 'timer', deep: true, tag: 'work', haptics: true, sfx: true, awake: true, saver: true, auto: false, goal: 60, breakMin: 5, sounds: {} },
+  settings: { mode: 'timer', deep: true, tag: 'work', haptics: true, sfx: true, awake: true, saver: true, auto: false, goal: 60, breakMin: 5, sounds: {}, ...POMO_DEFAULTS },
+  pomo: POMO_IDLE,
   active: null,
   harvest: null,
   ach: {},
@@ -45,6 +53,7 @@ function load() {
       if (s.wish && (!SP[s.wish] || SP[s.wish].exclusive || s.owned.includes(s.wish))) s.wish = null;
       if (s.active && !SP[s.active.species]) s.active = null;
       if (!s.tags.length) s.tags = d.tags;
+      if (!s.pomo || !['work', 'short', 'long'].includes(s.pomo.phase)) s.pomo = POMO_IDLE;
       return s;
     }
   } catch {}
@@ -248,9 +257,48 @@ function reward(s, drafts, totalMin, at) {
 }
 
 export function startSession(note = '') {
-  const { settings: c } = state, now = Date.now(), timer = c.mode === 'timer';
-  commit({ ...state, active: { start: now, seen: now, pausedAt: null, pausedMs: 0, planned: timer ? SP[state.selected].min * 60 : MAX_SW, mode: c.mode, species: state.selected, tag: c.tag, note: note.trim(), deep: c.deep } });
+  const { settings: c } = state, now = Date.now(), pomo = c.mode === 'pomo';
+  const planned = pomo ? c.pomoWork * 60 : c.mode === 'timer' ? SP[state.selected].min * 60 : MAX_SW;
+  // Starting a focus round always ends any break that was still pending.
+  const extra = pomo ? { pomo: { ...state.pomo, phase: 'work', until: null, pausedAt: null } } : {};
+  commit({ ...state, ...extra, active: { start: now, seen: now, pausedAt: null, pausedMs: 0, planned, mode: c.mode, species: pomo ? pomoSpecies(state) : state.selected, tag: c.tag, note: note.trim(), deep: c.deep } });
 }
+
+/* ---------- pomodoro ---------- */
+
+// A round grows the chosen tree only if the round is long enough for it; otherwise the biggest owned tree that fits.
+export function pomoSpecies(s) {
+  const work = s.settings.pomoWork, sel = SP[s.selected];
+  if (sel.min <= work) return sel.id;
+  const fits = s.owned.map((id) => SP[id]).filter((x) => x.min <= work).sort((a, b) => b.min - a.min);
+  return fits[0]?.id || 'pine';
+}
+
+export const breakMs = (s, phase) => (s.settings[phase === 'long' ? 'pomoLong' : 'pomoShort'] * 60000) / SPEED;
+// Remaining break time is derived from the end timestamp, so it stays right while the tab sleeps.
+export const breakLeft = (p, now) => (p.until ? Math.max(0, p.until - (p.pausedAt || now)) : 0);
+
+export function startBreak(at = Date.now()) {
+  const p = state.pomo;
+  if (p.phase === 'work' || p.until) return;
+  commit({ ...state, pomo: { ...p, until: at + breakMs(state, p.phase), pausedAt: null } });
+}
+
+// Pausing a break freezes it; resuming pushes the end time back by however long it sat paused.
+export function toggleBreakPause() {
+  const p = state.pomo, now = Date.now();
+  if (!p.until) return;
+  commit({ ...state, pomo: p.pausedAt ? { ...p, until: p.until + (now - p.pausedAt), pausedAt: null } : { ...p, pausedAt: now } });
+}
+
+// Ends the break (finished or skipped). A long break closes the cycle, so the round count starts over.
+export function endBreak() {
+  const p = state.pomo;
+  if (p.phase === 'work') return;
+  commit({ ...state, pomo: { ...POMO_IDLE, round: p.phase === 'long' ? 0 : p.round } });
+}
+
+export const resetPomo = () => commit({ ...state, pomo: POMO_IDLE });
 
 export const cancelSession = () => commit({ ...state, active: null });
 
@@ -276,14 +324,20 @@ export function heartbeat() {
 export function finishSession(ok, at = Date.now(), reason) {
   const s = state, a = s.active;
   if (!a) return null;
-  const el = elapsedOf(a, at), timer = a.mode === 'timer';
+  const el = elapsedOf(a, at), timer = isTimed(a.mode);
   const secs = Math.round(timer ? (ok ? a.planned : Math.min(el, a.planned)) : Math.min(el, MAX_SW));
   const draft = { id: at, start: a.start, end: at, secs, p: timer ? secs / a.planned : Math.min(1, secs / MIN_SW), species: a.species, tag: a.tag, note: a.note, ok, golden: false, coins: 0, deep: a.deep, mode: a.mode };
   if (!ok) {
     commit({ ...s, active: null, sessions: [...s.sessions, draft] });
     return { sessions: [draft], session: draft, minutes: secs / 60, coins: 0, unlocked: [], reason };
   }
-  const [next, r] = reward({ ...s, active: null }, [draft], secs / 60, at);
+  let [next, r] = reward({ ...s, active: null }, [draft], secs / 60, at);
+  if (a.mode === 'pomo') {
+    // A finished round moves the cycle on. The break starts at the moment the round ended, even if the app was asleep.
+    const round = s.pomo.round + 1, phase = round >= s.settings.pomoEvery ? 'long' : 'short';
+    next = { ...next, pomo: { round, phase, until: s.settings.pomoAutoBreak ? at + breakMs(s, phase) : null, pausedAt: null } };
+    r = { ...r, pomo: next.pomo };
+  }
   commit(next);
   return r;
 }

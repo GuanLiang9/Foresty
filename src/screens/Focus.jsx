@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Flame, Settings2, Volume2, ShieldCheck, Coffee, Share2, Trophy, CloudRain, Wind, Waves, MoonStar, AudioWaveform, Droplets, Bell, Plus, Minus, ChevronRight, ArrowUp, Pause, Play, Zap, Lock, X, Sun, Target } from 'lucide-react';
+import { Flame, Settings2, Volume2, ShieldCheck, Coffee, Share2, Trophy, CloudRain, Wind, Waves, MoonStar, AudioWaveform, Droplets, Bell, Plus, Minus, ChevronRight, ArrowUp, Pause, Play, Zap, Lock, X, Sun, Target, Timer, RotateCcw, SkipForward } from 'lucide-react';
 import Plant from '../components/Plant';
-import { Sheet, Coin, toast } from '../components/ui';
+import { Sheet, Coin, Toggle, Stepper, toast } from '../components/ui';
 import { useSmooth, useGrowIn, useCount } from '../lib/hooks';
 import * as audio from '../lib/audio';
 import { cl, mmss, dur, tier, notify } from '../lib/util';
 import { SP, SOUNDS, PHRASES, FIRST_BLOOM } from '../data';
-import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, markAway, clearCheckin, select, addTag, removeTag, isCustomTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW } from '../store';
+import { useStore, getState, setSetting, startSession, cancelSession, finishSession, stopFree, confirmHarvest, heartbeat, markAway, clearCheckin, select, addTag, removeTag, isCustomTag, buySound, togglePause, settlePause, isPaused, pausedTotal, pauseLeft, elapsedOf, streakOf, todayMinutes, haptic, sfx, SPEED, GRACE, MAX_SW, MIN_SW, isTimed, pomoSpecies, startBreak, toggleBreakPause, endBreak, resetPomo, breakLeft, breakMs } from '../store';
 
 const SAVER_MS = 15000;
 const R = 138, C = 2 * Math.PI * R, MAX_MIN = 180;
 const SOUND_ICON = { rain: CloudRain, wind: Wind, waves: Waves, fire: Flame, night: MoonStar, deep: AudioWaveform, stream: Droplets, bowls: Bell };
-const MODES = [['timer', 'Plant a tree'], ['stopwatch', 'Free focus']];
+const MODES = [['timer', 'Plant a tree'], ['pomo', 'Pomodoro'], ['stopwatch', 'Free focus']];
 const an = (name) => `${/^[aeiou]/i.test(name) ? 'An' : 'A'} ${name}`;
 // Overlays render at <body> so they cover the tab bar and are not trapped in a screen's stacking context.
 const Overlay = ({ children }) => createPortal(children, document.body);
@@ -59,6 +59,7 @@ const Line = ({ icon, children, delay }) => (
 );
 
 function Done({ r, breakMin, onBreak, onClose }) {
+  const p = r.pomo, longB = p?.phase === 'long';
   const x = r.session, n = r.sessions.length, sp = SP[x.species], g = useGrowIn(x.id, 1500);
   const total = r.coins + r.unlocked.reduce((s, a) => s + a.reward, 0), coins = useCount(total, 1400);
   const { wish: w, coins: coinsNow } = getState(), wish = w && SP[w];
@@ -78,6 +79,7 @@ function Done({ r, breakMin, onBreak, onClose }) {
         <p className="anim-rise mt-2 text-sm text-white/50" style={{ animationDelay: '.14s' }}>{n > 1 ? `${n} plants joined your grove.` : `${an(sp.name)} joined your grove.`}</p>
         <div className="mt-6 w-full space-y-2">
           <Line delay={0.25} icon={<Coin size={20} />}><b className="tnum">+{coins}</b> coins{r.boosted && <span className="text-amber-300"> · 2× boost used</span>}</Line>
+          {p && <Line delay={0.27} icon={<Timer size={20} className="text-cyan-300" />}>Round <b>{p.round}</b> done · {longB ? 'long break earned' : 'short break next'}</Line>}
           {r.firstBloom && <Line delay={0.28} icon={<Sun size={20} className="text-amber-200" />}>First bloom of the day · <b>+{FIRST_BLOOM}</b> bonus</Line>}
           {wish && <Line delay={0.6} icon={<Target size={20} className="text-rose-300" />}>{coinsNow >= wish.price ? <><b>{wish.name}</b> is ready to unlock</> : <><b className="tnum">{wish.price - coinsNow}</b> coins to {wish.name}</>}</Line>}
           {r.boostEarned && <Line delay={0.3} icon={<Zap size={20} className="text-amber-300" fill="currentColor" />}>Daily goal reached · <b>2× boost</b> for your next session</Line>}
@@ -86,8 +88,12 @@ function Done({ r, breakMin, onBreak, onClose }) {
           {r.unlocked.map((a, i) => <Line key={a.id} delay={0.55 + i * 0.1} icon={<Trophy size={20} className="text-amber-300" />}><b>{a.name}</b> unlocked · +{a.reward}</Line>)}
         </div>
         <div className="mt-7 flex w-full gap-3">
-          <button onClick={onBreak} className="press flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 font-medium"><Coffee size={18} /> {breakMin} min break</button>
-          <button onClick={onClose} className="cta h-14 flex-1 rounded-full font-semibold">Continue</button>
+          {p
+            ? <button onClick={onClose} className="cta flex h-14 flex-1 items-center justify-center gap-2 rounded-full font-semibold"><Coffee size={18} /> {p.until ? 'To my break' : `${longB ? 'Long' : 'Short'} break · ${breakMin} min`}</button>
+            : <>
+              <button onClick={onBreak} className="press flex h-14 flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 font-medium"><Coffee size={18} /> {breakMin} min break</button>
+              <button onClick={onClose} className="cta h-14 flex-1 rounded-full font-semibold">Continue</button>
+            </>}
         </div>
         {navigator.share && <button onClick={share} className="mt-4 flex items-center gap-2 text-sm text-white/45"><Share2 size={14} /> Share</button>}
       </div>
@@ -164,6 +170,35 @@ function Break({ until, onEnd }) {
   );
 }
 
+// Filled dots for finished rounds in this cycle; the long break comes after the last dot.
+function Rounds({ done, every, className = '' }) {
+  return (
+    <span className={`flex items-center gap-1 ${className}`} aria-label={`${done} of ${every} rounds done`}>
+      {[...Array(every)].map((_, i) => <span key={i} className={`h-1.5 w-1.5 rounded-full ${i < done ? 'bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,.8)]' : 'bg-white/20'}`} />)}
+    </span>
+  );
+}
+
+function PomoBreak({ p, every, now, onPause, onSkip }) {
+  const left = breakLeft(p, now), longB = p.phase === 'long';
+  return (
+    <div className="anim-fade fixed inset-0 z-40 flex flex-col items-center justify-center bg-ink/95 px-8 text-center backdrop-blur-2xl">
+      <div className="relative flex h-64 w-64 items-center justify-center short:h-52 short:w-52">
+        <div className={`${p.pausedAt ? '' : 'calm'} absolute inset-0 rounded-full`} style={{ background: 'radial-gradient(closest-side, rgba(34,211,238,.28), rgba(52,211,153,.1) 60%, transparent)' }} />
+        <div className={`${p.pausedAt ? '' : 'calm'} absolute inset-10 rounded-full border border-cyan-200/20`} />
+        <span className={`tnum relative text-6xl font-semibold tracking-tighter transition-opacity ${p.pausedAt ? 'opacity-40' : ''}`}>{mmss((left / 1000) * SPEED)}</span>
+      </div>
+      <p className="mt-6 text-[11px] font-semibold uppercase tracking-[.3em] text-cyan-300">{p.pausedAt ? 'Break paused' : longB ? 'Long break' : 'Short break'}</p>
+      <Rounds done={longB ? every : p.round} every={every} className="mt-3 justify-center" />
+      <p className="mt-3 max-w-[18rem] text-sm text-white/50">{longB ? 'Cycle complete. Stretch, drink some water, step outside.' : 'Breathe with the circle. Look at something far away.'}</p>
+      <div className="mt-8 flex w-full max-w-xs gap-3">
+        <button onClick={onPause} aria-label={p.pausedAt ? 'Resume break' : 'Pause break'} className={`glass press flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${p.pausedAt ? 'text-amber-300' : ''}`}>{p.pausedAt ? <Play size={18} /> : <Pause size={18} />}</button>
+        <button onClick={onSkip} className="press flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 text-sm font-medium"><SkipForward size={16} /> Skip break</button>
+      </div>
+    </div>
+  );
+}
+
 // Free focus ends here: the minutes become a budget to spend on any mix of owned species.
 function Harvest({ h, owned, streak, onDone }) {
   const budget = Math.floor(h.secs / 60);
@@ -234,7 +269,7 @@ export default function Focus({ onSettings, go }) {
   // Session engine: wall-clock based so it survives throttled timers, backgrounding and reloads.
   useEffect(() => {
     if (!a) return;
-    const timer = a.mode === 'timer', cap = timer ? a.planned : MAX_SW;
+    const timer = isTimed(a.mode), cap = timer ? a.planned : MAX_SW;
     const cur = () => getState().active;
     // Handles time spent away from the app between h and t. Returns true when the session ended because of it.
     const away = (h, t) => {
@@ -275,6 +310,30 @@ export default function Focus({ onSettings, go }) {
     return () => { clearInterval(iv); clearInterval(hb); document.removeEventListener('visibilitychange', vis); lock?.release().catch(() => {}); };
   }, [a?.start]);
 
+  // Pomodoro break engine. Like the session engine it compares against an end timestamp instead of counting ticks,
+  // so a throttled or sleeping tab catches up the moment it runs again.
+  const pomo = s.pomo;
+  useEffect(() => {
+    if (!pomo.until || pomo.pausedAt) return;
+    const check = () => {
+      const p = getState().pomo, t = Date.now();
+      if (!p.until || p.pausedAt) return;
+      setNow(t);
+      if (t < p.until) return;
+      const late = t - p.until > 60000, round = p.phase === 'long' ? 1 : p.round + 1;
+      endBreak();
+      sfx('start'); haptic([40, 60, 40]);
+      if (document.hidden) notify('Break is over', `Round ${round} is ready when you are.`);
+      // Auto-start only when the user is actually here; a round started in an empty room would just wither.
+      if (getState().settings.pomoAutoWork && !document.hidden && !late && !getState().active) { audio.unlock(); startSession(''); }
+      else toast(`Break over · round ${round} is ready`);
+    };
+    check();
+    const iv = setInterval(check, 250);
+    document.addEventListener('visibilitychange', check);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', check); };
+  }, [pomo.until, pomo.pausedAt]);
+
   // Screensaver arms after a quiet spell during a session; any touch re-arms it.
   useEffect(() => {
     if (!a || !cfg.saver || a.checkin || sheet) { setSaver(false); return; }
@@ -300,25 +359,31 @@ export default function Focus({ onSettings, go }) {
   }, [!!a, sheet, levels]);
   useEffect(() => () => audio.stop(), []);
 
-  const timer = (a ? a.mode : cfg.mode) === 'timer';
-  const sp = SP[a ? a.species : s.selected];
+  const mode = a ? a.mode : cfg.mode, timer = isTimed(mode), isPomo = mode === 'pomo';
+  const onBreak = isPomo && !a && pomo.phase !== 'work'; // a break is due (pending or running)
+  const sp = SP[a ? a.species : isPomo ? pomoSpecies(s) : s.selected];
   const elapsed = a ? elapsedOf(a, now) : 0;
-  const planned = a ? a.planned : sp.min * 60;
+  const planned = a ? a.planned : isPomo ? (onBreak ? (breakMs(s, pomo.phase) * SPEED) / 1000 : cfg.pomoWork * 60) : sp.min * 60;
   const paused = !!a && isPaused(a, now);
   const progress = a ? cl(timer ? elapsed / planned : elapsed / 1800) : 0;
   const g = useSmooth(a ? 0.04 + 0.96 * Math.pow(progress, 1.3) : 1);
   const scale = timer ? tier(sp.min) : a ? tier(elapsed / 60) : 0.9;
-  const frac = a ? (timer ? progress : (elapsed % 3600) / 3600) : timer ? sp.min / MAX_MIN : 0;
-  const time = a ? (timer ? mmss(planned - elapsed) : mmss(elapsed, true)) : timer ? mmss(sp.min * 60) : '00:00';
+  const frac = a ? (timer ? progress : (elapsed % 3600) / 3600) : timer ? planned / 60 / MAX_MIN : 0;
+  const time = a ? (timer ? mmss(planned - elapsed) : mmss(elapsed, true)) : timer ? mmss(planned) : '00:00';
   const streak = streakOf(s), today = todayMinutes(s);
   const tag = s.tags.find((t) => t.id === (a ? a.tag : cfg.tag)) || s.tags[0];
-  const earn = Math.max(1, Math.round(sp.min * 0.5 * (1 + Math.min(streak, 10) * 0.03))) * (s.boosts > 0 ? 2 : 1);
+  const earn = Math.max(1, Math.round((planned / 60) * 0.5 * (1 + Math.min(streak, 10) * 0.03))) * (s.boosts > 0 ? 2 : 1);
   const cancelLeft = a ? Math.ceil((10000 - (now - a.start)) / 1000) : 0;
   const anySound = Object.values(levels).some((v) => v > 0);
   const canPause = !!a && (paused || pauseLeft(a, now) > 1000);
   const phrase = PHRASES[Math.floor(elapsed / 45) % PHRASES.length];
 
   const plant = () => { audio.unlock(); sfx('start'); haptic(15); startSession(note); };
+  const pickMode = (m) => { setSetting('mode', m); haptic(6); };
+  const takeBreak = () => { audio.unlock(); sfx('start'); haptic(15); startBreak(); };
+  const skipBreak = () => { endBreak(); haptic(8); };
+  const doneMin = result?.pomo ? cfg[result.pomo.phase === 'long' ? 'pomoLong' : 'pomoShort'] : cfg.breakMin;
+  const closeDone = () => { const p = result?.pomo; setResult(null); if (p && !p.until) startBreak(); };
   const harvest = (ids) => { const r = confirmHarvest(ids); if (r) show(r); };
   const unlockSound = (x) => {
     if (!buySound(x.id)) return toast(`${x.price - s.coins} more coins to go`);
@@ -347,9 +412,9 @@ export default function Focus({ onSettings, go }) {
               ? <p className="tnum text-center text-sm font-medium text-amber-300">Paused · resumes in {mmss((pauseLeft(a, now) / 1000) * SPEED)}</p>
               : <p key={phrase} className="anim-rise text-center text-sm text-white/55">{phrase}</p>
           ) : (
-            <div className="glass relative grid grid-cols-2 rounded-full p-1 text-sm font-medium">
-              <span className="absolute inset-y-1 left-1 w-[calc(50%-4px)] rounded-full bg-white/[.12] transition-transform duration-500" style={{ transform: `translateX(${timer ? 0 : 100}%)`, transitionTimingFunction: 'cubic-bezier(.3,1.4,.5,1)' }} />
-              {MODES.map(([m, label]) => <button key={m} onClick={() => { setSetting('mode', m); haptic(6); }} className={`relative z-10 whitespace-nowrap px-4 py-1.5 transition-colors ${cfg.mode === m ? 'text-white' : 'text-white/45'}`}>{label}</button>)}
+            <div className="glass relative grid grid-cols-3 rounded-full p-1 text-[13px] font-medium">
+              <span className="absolute inset-y-1 left-1 w-[calc(33.333%-2.67px)] rounded-full bg-white/[.12] transition-transform duration-500" style={{ transform: `translateX(${Math.max(0, MODES.findIndex(([m]) => m === cfg.mode)) * 100}%)`, transitionTimingFunction: 'cubic-bezier(.3,1.4,.5,1)' }} />
+              {MODES.map(([m, label]) => <button key={m} onClick={() => pickMode(m)} className={`relative z-10 whitespace-nowrap px-3 py-1.5 transition-colors ${cfg.mode === m ? 'text-white' : 'text-white/45'}`}>{label}</button>)}
             </div>
           )}
         </div>
@@ -377,7 +442,11 @@ export default function Focus({ onSettings, go }) {
                 <span className="h-2 w-2 rounded-full" style={{ background: tag.color }} />{tag.name}
                 {a.note && <span className="max-w-[10rem] truncate">· {a.note}</span>}
                 {a.deep && <span className="flex items-center gap-1 text-emerald-300/80">· <ShieldCheck size={12} /> Deep Focus</span>}
+                {isPomo && <span className="tnum">· Round {pomo.round + 1}/{cfg.pomoEvery}</span>}
               </>
+            ) : isPomo ? (
+              <><Rounds done={onBreak && pomo.phase === 'long' ? cfg.pomoEvery : pomo.round} every={cfg.pomoEvery} />
+                <span className="tnum flex items-center gap-1">{onBreak ? `${pomo.phase === 'long' ? 'Long' : 'Short'} break due` : <>Round {pomo.round + 1} of {cfg.pomoEvery} · <Coin size={12} /> about +{earn}{s.boosts > 0 && <span className="flex items-center gap-0.5 text-amber-300"><Zap size={11} fill="currentColor" />2×</span>}</>}</span></>
             ) : timer ? (
               <><Coin size={12} /> about +{earn} coins{s.boosts > 0 && <span className="flex items-center gap-0.5 text-amber-300"><Zap size={11} fill="currentColor" />2× boost</span>}</>
             ) : 'Stop any time after 10 min, then choose your trees'}
@@ -387,16 +456,17 @@ export default function Focus({ onSettings, go }) {
         {!a && (
           <div className="flex w-full max-w-sm flex-col gap-2.5 short:gap-2">
             <div className="flex gap-2.5">
-              <button onClick={() => setSheet('tag')} className="glass press flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-2xl px-4 text-sm short:h-11">
+              <button onClick={() => setSheet('tag')} className={`glass press flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-2xl text-sm short:h-11 ${isPomo ? 'px-3' : 'px-4'}`}>
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: tag.color, boxShadow: `0 0 10px ${tag.color}` }} />
-                <span className="flex-1 truncate text-left font-medium">{tag.name}</span><ChevronRight size={15} className="shrink-0 text-white/30" />
+                <span className="flex-1 truncate text-left font-medium">{tag.name}</span>{!isPomo && <ChevronRight size={15} className="shrink-0 text-white/30" />}
               </button>
               {timer && (
                 <button onClick={() => setSheet('species')} className="glass press flex h-12 min-w-0 flex-[1.35] items-center gap-2 rounded-2xl px-3 text-sm short:h-11">
-                  <Plant species={s.selected} sway={false} lite className="h-8 w-7 shrink-0" />
-                  <span className="flex-1 truncate text-left font-medium">{sp.name}</span><ChevronRight size={15} className="shrink-0 text-white/30" />
+                  <Plant species={sp.id} sway={false} lite className="h-8 w-7 shrink-0" />
+                  <span className="flex-1 truncate text-left font-medium">{sp.name}</span>{!isPomo && <ChevronRight size={15} className="shrink-0 text-white/30" />}
                 </button>
               )}
+              {isPomo && <button onClick={() => setSheet('pomo')} aria-label="Pomodoro settings" className="glass press flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white/70 short:h-11 short:w-11"><Timer size={18} /></button>}
             </div>
             <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={60} placeholder="What are you growing toward?" enterKeyHint="done" onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} className="glass h-12 w-full shrink-0 rounded-2xl px-4 text-sm outline-none placeholder:text-white/30 focus:border-emerald-300/40 short:h-11" />
           </div>
@@ -414,7 +484,14 @@ export default function Focus({ onSettings, go }) {
               : <Hold onDone={() => (timer ? end(false, undefined, 'quit') : endFree(undefined, 'short'))}>Hold to give up</Hold>}
         </div>
       ) : (
-        <button onClick={plant} className="cta mx-auto h-[60px] w-full max-w-sm shrink-0 rounded-full text-lg font-semibold tracking-tight short:h-[52px]">{timer ? `Plant · ${sp.min} min` : 'Start focusing'}</button>
+        onBreak ? (
+          <div className="mx-auto flex w-full max-w-sm shrink-0 gap-3">
+            <button onClick={skipBreak} className="glass press flex h-[60px] items-center gap-1.5 rounded-full px-5 text-sm font-medium text-white/70 short:h-[52px]"><SkipForward size={16} /> Skip</button>
+            <button onClick={takeBreak} className="cta flex h-[60px] flex-1 items-center justify-center gap-2 rounded-full text-lg font-semibold tracking-tight short:h-[52px]"><Coffee size={19} /> {pomo.phase === 'long' ? 'Long' : 'Short'} break · {planned / 60} min</button>
+          </div>
+        ) : (
+          <button onClick={plant} className="cta mx-auto h-[60px] w-full max-w-sm shrink-0 rounded-full text-lg font-semibold tracking-tight short:h-[52px]">{isPomo ? `Focus · ${cfg.pomoWork} min` : timer ? `Plant · ${sp.min} min` : 'Start focusing'}</button>
+        )
       )}
 
       <Sheet open={sheet === 'tag'} onClose={() => setSheet(null)} title="Focus on">
@@ -435,17 +512,31 @@ export default function Focus({ onSettings, go }) {
       </Sheet>
 
       <Sheet open={sheet === 'species'} onClose={() => setSheet(null)} title="Choose a tree">
-        <p className="-mt-2 mb-4 text-sm text-white/45">Each tree sets its own focus time. Rarer trees ask for longer.</p>
+        <p className="-mt-2 mb-4 text-sm text-white/45">{isPomo ? `Each ${cfg.pomoWork} min round grows one tree. Longer rounds unlock rarer trees.` : 'Each tree sets its own focus time. Rarer trees ask for longer.'}</p>
         <div className="grid grid-cols-3 gap-2.5">
-          {[...s.owned].sort((x, y) => SP[x].min - SP[y].min).map((id) => (
-            <button key={id} onClick={() => { select(id); setSheet(null); haptic(6); }} className={`press flex flex-col items-center rounded-2xl border p-2 pb-3 ${id === s.selected ? 'border-emerald-300/60 bg-emerald-300/10' : 'border-white/10 bg-white/5'}`}>
+          {[...s.owned].sort((x, y) => SP[x].min - SP[y].min).map((id) => {
+            const locked = isPomo && SP[id].min > cfg.pomoWork;
+            return (
+            <button key={id} disabled={locked} onClick={() => { select(id); setSheet(null); haptic(6); }} className={`press flex flex-col items-center rounded-2xl border p-2 pb-3 disabled:opacity-35 ${id === sp.id ? 'border-emerald-300/60 bg-emerald-300/10' : 'border-white/10 bg-white/5'}`}>
               <Plant species={id} sway={false} lite className="h-20 w-full" />
               <span className="mt-1 w-full truncate text-xs font-medium">{SP[id].name}</span>
-              <span className="tnum text-[11px] text-emerald-300">{SP[id].min} min</span>
+              <span className="tnum text-[11px] text-emerald-300">{locked ? `needs ${SP[id].min} min` : `${SP[id].min} min`}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
         <button onClick={() => { setSheet(null); go('shop'); }} className="mt-5 flex w-full items-center justify-center gap-1 text-sm text-emerald-300">Unlock more in the Nursery <ChevronRight size={15} /></button>
+      </Sheet>
+
+      <Sheet open={sheet === 'pomo'} onClose={() => setSheet(null)} title="Pomodoro">
+        <p className="-mt-2 mb-1 text-sm text-white/45">Focus in rounds with short breaks between them, and a longer break to finish each cycle. Every finished round grows a tree.</p>
+        {[['pomoWork', 'Focus', 5, 90, 5], ['pomoShort', 'Short break', 1, 30, 1], ['pomoLong', 'Long break', 5, 45, 5]].map(([k, label, lo, hi, step]) => (
+          <div key={k} className="flex items-center gap-4 border-b border-white/[.06] py-3"><span className="flex-1 text-sm font-medium">{label}</span><Stepper value={cfg[k]} min={lo} max={hi} step={step} unit="min" onChange={(v) => setSetting(k, v)} /></div>
+        ))}
+        <div className="flex items-center gap-4 border-b border-white/[.06] py-3"><span className="flex-1 text-sm font-medium">Long break after</span><Stepper value={cfg.pomoEvery} min={2} max={8} step={1} unit="rounds" onChange={(v) => setSetting('pomoEvery', v)} /></div>
+        <div className="flex items-center gap-4 border-b border-white/[.06] py-3"><div className="flex-1"><div className="text-sm font-medium">Auto-start breaks</div><div className="mt-0.5 text-xs text-white/40">The break clock starts the moment a round ends.</div></div><Toggle on={cfg.pomoAutoBreak} onChange={(v) => setSetting('pomoAutoBreak', v)} /></div>
+        <div className="flex items-center gap-4 border-b border-white/[.06] py-3"><div className="flex-1"><div className="text-sm font-medium">Auto-start next round</div><div className="mt-0.5 text-xs text-white/40">Only while the app is open, so a round never starts without you.</div></div><Toggle on={cfg.pomoAutoWork} onChange={(v) => setSetting('pomoAutoWork', v)} /></div>
+        <button onClick={() => { resetPomo(); haptic(8); toast('Cycle reset · round 1'); setSheet(null); }} disabled={!pomo.round && pomo.phase === 'work'} className="press mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 py-3 text-sm font-medium disabled:opacity-35"><RotateCcw size={15} /> Reset cycle</button>
       </Sheet>
 
       <Sheet open={sheet === 'sound'} onClose={() => setSheet(null)} title="Soundscape">
@@ -473,8 +564,9 @@ export default function Focus({ onSettings, go }) {
         {a?.checkin && !result && <CheckIn ms={a.checkin.ms} species={sp.id} onLocked={fromLock} onLeft={fromApp} />}
         {s.harvest && !result && <Harvest h={s.harvest} owned={s.owned} streak={streak} onDone={harvest} />}
         {result && (result.session.ok
-          ? <Done r={result} breakMin={cfg.breakMin} onClose={() => setResult(null)} onBreak={() => { setResult(null); setBrk(Date.now() + (cfg.breakMin * 60000) / SPEED); }} />
+          ? <Done r={result} breakMin={doneMin} onClose={closeDone} onBreak={() => { setResult(null); setBrk(Date.now() + (cfg.breakMin * 60000) / SPEED); }} />
           : <Failed r={result} onClose={() => setResult(null)} />)}
+        {pomo.until && !a && !result && <PomoBreak p={pomo} every={cfg.pomoEvery} now={now} onPause={() => { toggleBreakPause(); haptic(8); }} onSkip={skipBreak} />}
         {brk && <Break until={brk} onEnd={(natural) => { setBrk(null); if (natural && cfg.auto) { audio.unlock(); startSession(''); } }} />}
       </Overlay>
     </div>
