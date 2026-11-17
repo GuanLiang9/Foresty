@@ -83,7 +83,7 @@ export function syncGame({ force = false } = {}) {
   setStatus({ phase: 'syncing' });
   gameRun = round(acc.user.id)
     .then((added) => setStatus({ phase: 'ok', at: Date.now(), added, n: status.n + 1 }))
-    .catch(() => setStatus({ phase: 'offline' })) // no network: local play continues, we try again later
+    .catch((err) => setStatus({ phase: err.status ? 'error' : 'offline', error: err.message })) // no network: local play continues, we try again later
     .finally(() => { gameRun = null; if (again) { again = false; syncGame(); } });
   return gameRun;
 }
@@ -99,7 +99,7 @@ export async function pushIfChanged() {
   if (meta.owner !== acc.user.id || meta.version == null) return syncGame();
   gameRun = api('state', { method: 'PUT', body: { data: doc, baseVersion: meta.version } })
     .then((r) => { writeMeta({ owner: meta.owner, version: r.version, base: counters(doc) }); lastSig = sigOf(doc); setStatus({ phase: 'ok', at: Date.now() }); })
-    .catch((err) => { if (err.status === 409) again = true; else setStatus({ phase: 'offline' }); })
+    .catch((err) => { if (err.status === 409) again = true; else setStatus({ phase: err.status ? 'error' : 'offline', error: err.message }); })
     .finally(() => { gameRun = null; if (again) { again = false; syncGame(); } });
   return gameRun;
 }
