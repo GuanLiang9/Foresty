@@ -1,5 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Public settings baked into the browser bundle at build time. Neither is secret.
+// Read without the VITE_ prefix so they can be set the same way on Vercel and GitHub Actions.
+const env = (...keys) => keys.map((k) => process.env[k]).find(Boolean) || '';
+const NEON_AUTH_URL = env('NEON_AUTH_URL', 'NEON_AUTH_BASE_URL', 'VITE_NEON_AUTH_URL');
+// Where the API lives. Empty = same site (the Vercel build). Set it for the GitHub Pages build.
+const API_URL = env('API_URL', 'VITE_API_URL').replace(/\/+$/, '');
+
 // Relative base so the build works at any path (GitHub Pages subfolder, root, file server).
-export default defineConfig({ base: './', plugins: [react()] });
+export default defineConfig({
+  base: './',
+  plugins: [react()],
+  define: {
+    'import.meta.env.NEON_AUTH_URL': JSON.stringify(NEON_AUTH_URL),
+    'import.meta.env.API_URL': JSON.stringify(API_URL),
+  },
+});

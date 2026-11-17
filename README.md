@@ -45,7 +45,13 @@ Players can sign in (email + password) from **Journey → Leaderboard** and comp
 - `api/leaderboard.js` sums the stored sessions per player.
 - Tables (`profiles`, `focus_sessions`) are created automatically on the first API call (`server/schema.js`).
 
-Setup: copy the **Auth URL** from Neon Console → Auth → Configuration into Vercel as `VITE_NEON_AUTH_URL`, add your Vercel domain(s) to Neon Auth's trusted domains, then redeploy. Without `VITE_NEON_AUTH_URL` the leaderboard card is hidden and the app works as before.
+Setup:
+1. Copy the **Auth URL** from Neon Console → Auth → Configuration.
+2. Vercel → Settings → Environment Variables: add `NEON_AUTH_URL` (and `DATABASE_URL`), then redeploy.
+3. GitHub repo → Settings → Secrets and variables → Actions → **Variables**: add `NEON_AUTH_URL` and `API_URL` (your Vercel production URL, e.g. `https://foresty.vercel.app`), then re-run the Deploy workflow.
+4. Neon Auth → Domains: add `https://guanliang9.github.io` (and any Vercel URLs you sign in from).
+
+The app at `https://guanliang9.github.io/Foresty/` calls the API on Vercel; `server/cors.js` allows that origin. Without `NEON_AUTH_URL` the leaderboard card is hidden and the app works as before.
 
 Limits: the app can't fully prove a session was honest, since a determined player could craft fake requests within those limits. Fine for friends; for a public leaderboard, sessions would need to be timed on the server.
 

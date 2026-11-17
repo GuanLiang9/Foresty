@@ -4,6 +4,7 @@
 // The function runs on Vercel's servers, so it can read DATABASE_URL safely;
 // the browser only ever sees the JSON this returns.
 import { getSql, databaseUrl } from '../server/db.js';
+import { cors } from '../server/cors.js';
 
 // Explains a failure without leaking the connection string or password.
 function diagnose(url, err) {
@@ -17,6 +18,7 @@ function diagnose(url, err) {
 }
 
 export default async function handler(req, res) {
+  if (cors(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 

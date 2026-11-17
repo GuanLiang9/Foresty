@@ -6,14 +6,14 @@
 // No passwords or secrets are needed on our side for this.
 import { createLocalJWKSet, jwtVerify } from 'jose';
 
-const authBase = () => (process.env.NEON_AUTH_URL || process.env.VITE_NEON_AUTH_URL || '').trim().replace(/\/+$/, '');
+const authBase = () => (process.env.NEON_AUTH_URL || process.env.NEON_AUTH_BASE_URL || process.env.VITE_NEON_AUTH_URL || '').trim().replace(/\/+$/, '');
 
 let keys = null, keysAt = 0;
 
 async function loadKeys(force = false) {
   if (keys && !force && Date.now() - keysAt < 60 * 60 * 1000) return keys;
   const base = authBase();
-  if (!base) throw new Error('VITE_NEON_AUTH_URL is not set');
+  if (!base) throw new Error('NEON_AUTH_URL is not set');
   // Neon Auth serves its public keys at one of these paths depending on version.
   for (const path of ['/.well-known/jwks.json', '/jwks']) {
     try {

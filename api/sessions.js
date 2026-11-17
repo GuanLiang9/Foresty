@@ -1,6 +1,7 @@
 // POST /api/sessions — a signed-in player uploads their recent finished sessions.
 // Body: { sessions: [{ id, start, end, secs, species }] } (start/end in ms since 1970).
 import { getSql } from '../server/db.js';
+import { cors } from '../server/cors.js';
 import { getUser } from '../server/auth.js';
 import { ensureSchema } from '../server/schema.js';
 
@@ -26,6 +27,7 @@ export function displayName(user) {
 }
 
 export default async function handler(req, res) {
+  if (cors(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

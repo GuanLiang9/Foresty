@@ -1,12 +1,14 @@
 // GET /api/leaderboard?period=week|month — top players by focus time.
 // Anyone can read it; if the caller is signed in, their own row is marked and their rank returned.
 import { getSql } from '../server/db.js';
+import { cors } from '../server/cors.js';
 import { getUser } from '../server/auth.js';
 import { ensureSchema } from '../server/schema.js';
 
 const DAYS = { week: 7, month: 30 };
 
 export default async function handler(req, res) {
+  if (cors(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 

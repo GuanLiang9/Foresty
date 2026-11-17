@@ -4,7 +4,7 @@
 // The Neon Auth library is loaded only when needed, keeping the first load fast and offline-friendly.
 import { useSyncExternalStore } from 'react';
 
-const AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL;
+const AUTH_URL = import.meta.env.NEON_AUTH_URL;
 export const authEnabled = Boolean(AUTH_URL);
 
 let clientPromise;

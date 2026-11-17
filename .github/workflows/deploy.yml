@@ -28,6 +28,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Public URLs (not secrets). Set them in repo Settings > Secrets and variables > Actions > Variables.
+          API_URL: ${{ vars.API_URL }}
+          NEON_AUTH_URL: ${{ vars.NEON_AUTH_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
