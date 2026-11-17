@@ -12,7 +12,7 @@ import Shop from './screens/Shop';
 import Journey from './screens/Journey';
 import Ranks from './screens/Ranks';
 import { refreshAccount, useAccount } from './lib/auth';
-import { syncSessions } from './lib/sync';
+import { syncSessions, syncGame, pushIfChanged, useSyncStatus } from './lib/sync';
 
 const TABS = [['focus', 'Focus', Timer], ['grove', 'Grove', Trees], ['shop', 'Nursery', Store], ['journey', 'Journey', Trophy], ['ranks', 'Ranks', Medal]];
 const FLIES = [...Array(14)].map((_, i) => ({ left: `${(i * 37 + 11) % 100}%`, top: `${(i * 53 + 17) % 100}%`, '--dx': `${((i * 29) % 80) - 40}px`, '--dy': `${-30 - ((i * 17) % 70)}px`, '--t': `${9 + (i % 6) * 2}s`, animationDelay: `${-i * 1.3}s` }));
@@ -54,7 +54,7 @@ const Row = ({ title, desc, children }) => (
 );
 
 function Settings({ open, onClose }) {
-  const s = useStore(), c = s.settings, file = useRef();
+  const s = useStore(), c = s.settings, file = useRef(), acc = useAccount(), sync = useSyncStatus();
   const [wipe, setWipe] = useState(false);
   const canNotify = typeof Notification !== 'undefined';
   const [perm, setPerm] = useState(canNotify ? Notification.permission : 'denied');
@@ -93,7 +93,10 @@ function Settings({ open, onClose }) {
           {window.__install && <button onClick={install} className="cta h-9 rounded-full px-4 text-sm font-semibold">Install</button>}
         </Row>
       )}
-      <Row title="Backup" desc="Everything lives on this device. Export it to keep it safe.">
+      <Row title="Cloud sync" desc={acc.status === 'in' ? (sync.phase === 'offline' ? 'Offline. Your changes are kept and sent when you are back online.' : 'Plants, history, coins and settings follow your account on every device.') : 'Sign in from the Ranks tab to keep your grove in sync across your phone and browser.'}>
+        {acc.status === 'in' ? <button onClick={() => syncGame()} disabled={sync.phase === 'syncing'} className="press h-9 rounded-full bg-white/10 px-4 text-sm font-medium disabled:opacity-40">{sync.phase === 'syncing' ? 'Syncing…' : sync.phase === 'ok' ? 'Synced ✓' : 'Sync now'}</button> : <span className="text-xs text-white/40">Off</span>}
+      </Row>
+      <Row title="Backup" desc="A file copy of your grove. Export it to keep it safe.">
         <div className="flex gap-2">
           <button aria-label="Export" onClick={save} className="press flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><Download size={16} /></button>
           <button aria-label="Import" onClick={() => file.current.click()} className="press flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><Upload size={16} /></button>
@@ -115,6 +118,25 @@ export default function App() {
   const acc = useAccount();
   useEffect(() => { refreshAccount(); }, []);
   useEffect(() => { if (acc.status === 'in' && !s.active) syncSessions(); }, [acc.status, s.sessions.length, s.active]);
+
+  // Cloud sync of the whole grove: pull + merge on sign-in and whenever the app comes back to the front,
+  // upload a few seconds after each change, and look for changes from other devices once a minute.
+  const sync = useSyncStatus();
+  useEffect(() => {
+    if (acc.status !== 'in') return;
+    syncGame();
+    const again = () => { if (!document.hidden) syncGame(); };
+    document.addEventListener('visibilitychange', again);
+    addEventListener('online', again);
+    const t = setInterval(again, 60000);
+    return () => { document.removeEventListener('visibilitychange', again); removeEventListener('online', again); clearInterval(t); };
+  }, [acc.status, acc.user?.id]);
+  useEffect(() => {
+    if (acc.status !== 'in') return;
+    const t = setTimeout(pushIfChanged, 2500);
+    return () => clearTimeout(t);
+  }, [s, acc.status]);
+  useEffect(() => { if (sync.added > 0) toast(`Synced · ${sync.added} plant${sync.added > 1 ? 's' : ''} from your account`); }, [sync.n]);
 
   useEffect(() => {
     const run = () => { if (document.hidden) return; const used = rollover(); if (used) toast(`Streak shield used · ${used} day${used > 1 ? 's' : ''} covered`); };

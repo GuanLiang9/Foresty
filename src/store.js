@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { SP, BUYABLE, TAGS, TAG_COLORS, ACHIEVEMENTS, QUESTS, LEVELS, SOUNDS, FREE_SOUNDS, MONTHLY, EVENTS, DUPLICATE_REWARD, FIRST_BLOOM, SHIELD_PRICE, MAX_SHIELDS } from './data';
 import { dayKey, mulberry } from './lib/util';
 import * as audio from './lib/audio';
+import { skey, MAX_TOMBS } from './lib/merge';
 
 // `?demo` makes one minute pass per second so a full session can be tried in under a minute.
 export const SPEED = new URLSearchParams(location.search).has('demo') ? 60 : 1;
@@ -38,6 +39,8 @@ const defaults = () => ({
   freezes: 0,
   frozen: {},
   onboarded: false,
+  deleted: [], // keys of sessions the player removed, so cloud sync does not bring them back
+  prefsAt: 0, // when settings / selected plant / wish last changed (last writer wins across devices)
 });
 
 function load() {
@@ -53,6 +56,7 @@ function load() {
       if (s.wish && (!SP[s.wish] || SP[s.wish].exclusive || s.owned.includes(s.wish))) s.wish = null;
       if (s.active && !SP[s.active.species]) s.active = null;
       if (!s.tags.length) s.tags = d.tags;
+      if (!Array.isArray(s.deleted)) s.deleted = [];
       if (!s.pomo || !['work', 'short', 'long'].includes(s.pomo.phase)) s.pomo = POMO_IDLE;
       return s;
     }
@@ -69,7 +73,11 @@ const subscribe = (f) => { subs.add(f); return () => subs.delete(f); };
 export const getState = () => state;
 export const useStore = () => useSyncExternalStore(subscribe, getState);
 export const set = (patch) => commit({ ...state, ...patch });
-export const setSetting = (k, v) => commit({ ...state, settings: { ...state.settings, [k]: v } });
+export const setSetting = (k, v) => commit({ ...state, prefsAt: Date.now(), settings: { ...state.settings, [k]: v } });
+// Cloud sync swaps in merged data through this (see lib/sync.js). Returns the state it replaced.
+export const applySynced = (fn) => { const before = state; commit(fn(before)); return before; };
+const wipeHooks = new Set();
+export const onWipe = (f) => { wipeHooks.add(f); return () => wipeHooks.delete(f); };
 export const haptic = (p) => { if (state.settings.haptics) try { navigator.vibrate?.(p); } catch {} };
 export const sfx = (k) => state.settings.sfx && audio.chime(k);
 
@@ -177,7 +185,7 @@ export function eventCalendar(s) {
   }).sort((p, q) => p.a - q.a);
 }
 
-export const setWish = (id) => commit({ ...state, wish: state.wish === id ? null : id });
+export const setWish = (id) => commit({ ...state, prefsAt: Date.now(), wish: state.wish === id ? null : id });
 
 export function periodRange(kind, off) {
   const d = new Date();
@@ -372,7 +380,7 @@ export function buy(id) {
   return unlocked;
 }
 
-export const select = (id) => state.owned.includes(id) && commit({ ...state, selected: id });
+export const select = (id) => state.owned.includes(id) && commit({ ...state, selected: id, prefsAt: Date.now() });
 
 export function buySound(id) {
   const snd = SOUNDS.find((x) => x.id === id);
@@ -408,7 +416,10 @@ export function claimChallenge(key) {
   return dupe ? { coins: DUPLICATE_REWARD } : { species: c.reward };
 }
 
-export const deleteSession = (id) => commit({ ...state, sessions: state.sessions.filter((x) => x.id !== id) });
+export function deleteSession(id) {
+  const gone = state.sessions.filter((x) => x.id === id);
+  commit({ ...state, sessions: state.sessions.filter((x) => x.id !== id), deleted: [...state.deleted, ...gone.map(skey)].slice(-MAX_TOMBS) });
+}
 
 export function addTag(name) {
   name = name.trim().slice(0, 16);
@@ -466,7 +477,15 @@ export function importData(text) {
     freezes: Math.max(0, Math.min(MAX_SHIELDS, +raw.freezes || 0)),
     frozen: obj(raw.frozen),
     onboarded: true,
+    prefsAt: Date.now(),
   });
 }
 
-export const resetAll = () => commit({ ...defaults(), onboarded: true });
+// Another account's data must never leak into this one: used when a different person signs in here.
+export const startFresh = () => commit({ ...defaults(), onboarded: true });
+
+// Erases this device only. Signed in, the next sync brings your cloud copy back (see README).
+export function resetAll() {
+  commit({ ...defaults(), onboarded: true });
+  wipeHooks.forEach((f) => f());
+}
