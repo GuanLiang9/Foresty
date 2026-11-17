@@ -55,25 +55,58 @@ const sigOf = (doc) => JSON.stringify(canon(doc));
 // One round: pull, merge, apply, push. Retries when another device pushed in between.
 async function round(uid) {
   let meta = readMeta();
-  if (meta.owner && meta.owner !== uid) { startFresh(); meta = {}; } // someone else's grove: never mix it into this account
+  if (meta.owner && meta.owner !== uid) { startFresh(); meta = {}; lastSig = ''; } // someone else's grove: never mix it into this account
   for (let tries = 0; tries < 4; tries++) {
-    const { data: cloud, version } = await api('state');
-    const before = applySynced((s) => applyDoc(s, mergeDocs(toDoc(s), cloud, meta.base)));
-    const merged = toDoc(getState());
-    const added = merged.sessions.length - before.sessions.length;
-    meta = { owner: uid, version, base: counters(cloud) };
-    writeMeta(meta);
-    if (cloud && sigOf(merged) === sigOf(cloud)) { lastSig = sigOf(merged); return added; } // nothing new to send
-    try {
-      const r = await api('state', { method: 'PUT', body: { data: merged, baseVersion: version } });
-      writeMeta({ owner: uid, version: r.version, base: counters(merged) });
-      lastSig = sigOf(merged);
-      return added;
-    } catch (err) {
-      if (err.status !== 409) throw err; // 409: someone else pushed first, so pull again and re-merge
+    // Fast path: once this page has synced, we know which cloud version our data is based on. Ask the server
+    // "still version N?" and it answers without sending the whole grove. Usually nothing changed on the other
+    // devices, so this check costs a few bytes instead of the full history every minute.
+    if (tries === 0 && lastSig && meta.owner === uid && meta.version != null) {
+      const r = await api(`state?known=${meta.version}`);
+      if (r.unchanged) {
+        const doc = toDoc(getState());
+        if (sigOf(doc) === lastSig) return 0; // nothing new on either side
+        // Only this device changed: our data already is "cloud + my changes", so send it as is (like pushIfChanged).
+        try {
+          const saved = await api('state', { method: 'PUT', body: { data: doc, baseVersion: meta.version } });
+          writeMeta({ owner: uid, version: saved.version, base: counters(doc) });
+          lastSig = sigOf(doc);
+          return 0;
+        } catch (err) {
+          if (err.status !== 409) throw err; // another device saved in the meantime: do the full merge below
+          continue;
+        }
+      }
+      // Changed elsewhere: the response already carries the new cloud copy, so merge it right away.
+      const added = await mergeAndPush(uid, meta, r.data, r.version);
+      if (added != null) return added;
+      meta = readMeta();
+      continue;
     }
+    const { data: cloud, version } = await api('state');
+    const added = await mergeAndPush(uid, meta, cloud, version);
+    if (added != null) return added;
+    meta = readMeta();
   }
   throw new Error('Sync is busy, will retry');
+}
+
+// Merges a cloud copy into this device and uploads the result. Returns the number of plants that came in,
+// or null when another device saved first (the caller then pulls again).
+async function mergeAndPush(uid, meta, cloud, version) {
+  const before = applySynced((s) => applyDoc(s, mergeDocs(toDoc(s), cloud, meta.base)));
+  const merged = toDoc(getState());
+  const added = merged.sessions.length - before.sessions.length;
+  writeMeta({ owner: uid, version, base: counters(cloud) });
+  if (cloud && sigOf(merged) === sigOf(cloud)) { lastSig = sigOf(merged); return added; } // nothing new to send
+  try {
+    const r = await api('state', { method: 'PUT', body: { data: merged, baseVersion: version } });
+    writeMeta({ owner: uid, version: r.version, base: counters(merged) });
+    lastSig = sigOf(merged);
+    return added;
+  } catch (err) {
+    if (err.status !== 409) throw err; // 409: someone else pushed first, so pull again and re-merge
+    return null;
+  }
 }
 
 export function syncGame({ force = false } = {}) {
@@ -83,7 +116,7 @@ export function syncGame({ force = false } = {}) {
   setStatus({ phase: 'syncing' });
   gameRun = round(acc.user.id)
     .then((added) => setStatus({ phase: 'ok', at: Date.now(), added, n: status.n + 1 }))
-    .catch(() => setStatus({ phase: 'offline' })) // no network: local play continues, we try again later
+    .catch((err) => setStatus({ phase: err.status ? 'error' : 'offline', error: err.message })) // no network: local play continues, we try again later
     .finally(() => { gameRun = null; if (again) { again = false; syncGame(); } });
   return gameRun;
 }
@@ -99,7 +132,7 @@ export async function pushIfChanged() {
   if (meta.owner !== acc.user.id || meta.version == null) return syncGame();
   gameRun = api('state', { method: 'PUT', body: { data: doc, baseVersion: meta.version } })
     .then((r) => { writeMeta({ owner: meta.owner, version: r.version, base: counters(doc) }); lastSig = sigOf(doc); setStatus({ phase: 'ok', at: Date.now() }); })
-    .catch((err) => { if (err.status === 409) again = true; else setStatus({ phase: 'offline' }); })
+    .catch((err) => { if (err.status === 409) again = true; else setStatus({ phase: err.status ? 'error' : 'offline', error: err.message }); })
     .finally(() => { gameRun = null; if (again) { again = false; syncGame(); } });
   return gameRun;
 }

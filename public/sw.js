@@ -16,11 +16,15 @@ self.addEventListener('message', (e) => {
   if (!e.data?.cache) return;
   const keep = new Set(e.data.cache);
   e.waitUntil(caches.open(CACHE).then(async (c) => {
-    await Promise.allSettled(e.data.cache.map((u) => c.add(u)));
+    // Only fetch what isn't saved yet. (Re-adding everything re-downloaded the whole app on every launch.)
+    await Promise.allSettled(e.data.cache.map(async (u) => { if (!(await c.match(u))) await c.add(u); }));
     // Hashed bundles from older releases are never requested again; drop them.
     for (const r of await c.keys()) if (r.url.includes('/assets/') && !keep.has(r.url)) await c.delete(r);
   }));
 });
+
+// How long a page load waits for the network before opening the saved copy instead (weak signal, "lie-fi").
+const NAV_TIMEOUT = 2000;
 
 self.addEventListener('fetch', (e) => {
   const r = e.request;
@@ -31,9 +35,20 @@ self.addEventListener('fetch', (e) => {
     const c = await caches.open(CACHE);
     const nav = r.mode === 'navigate';
     const hit = await c.match(nav ? './' : r);
+    // Files in assets/ have a hash of their contents in the name, so a saved copy can never be out of date:
+    // serve it straight from the cache without touching the network.
+    if (hit && !nav && u.pathname.includes('/assets/')) return hit;
     const net = fetch(r).then((res) => { if (res.ok) c.put(nav ? './' : r, res.clone()); return res; });
-    if (nav) return net.catch(() => hit);
-    return hit || net;
+    if (nav) {
+      // Network first so a new release shows up right away, but don't hang on a bad connection:
+      // after NAV_TIMEOUT open the saved copy (the network answer still refreshes the cache for next time).
+      if (!hit) return net;
+      net.catch(() => {});
+      return Promise.race([net.catch(() => hit), new Promise((done) => setTimeout(() => done(hit), NAV_TIMEOUT))]);
+    }
+    // Icons and the manifest: answer from the cache now, refresh it in the background.
+    if (hit) { net.catch(() => {}); return hit; }
+    return net;
   })());
 });
 

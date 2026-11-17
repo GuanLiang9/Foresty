@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Trophy, Swords, Copy, LogOut, Crown, Plus } from 'lucide-react';
 import { Coin, Sheet, toast } from '../components/ui';
 import { DailyBars, RaceBars } from '../components/Charts';
-import { useAccount, signIn, signUp, signOut } from '../lib/auth';
+import { useAccount, getAccount, signIn, signUp, signOut } from '../lib/auth';
 import { syncSessions, signOutSynced } from '../lib/sync';
 import { api } from '../lib/api';
 import { dur } from '../lib/util';
@@ -12,6 +12,14 @@ const input = 'h-12 w-full rounded-2xl bg-white/[.07] px-4 text-[15px] outline-n
 const DURATIONS = [[1, '1 day'], [3, '3 days'], [7, '1 week'], [14, '2 weeks'], [30, '1 month']];
 // Must match rewardFor() in api/competitions.js (the server is what actually pays out).
 const prize = (days) => Math.round((100 * days ** 0.75) / 10) * 10;
+
+// Last answers from the server, kept while the app is open ("stale while revalidate"): coming back to this tab
+// shows the previous leaderboard instantly while a fresh copy loads, instead of a blank "Loading…" every time.
+// Keyed by account, so signing in as someone else never shows the previous person's races.
+const seen = new Map();
+const keyOf = (k) => `${getAccount().user?.id}:${k}`;
+const remember = (k, v) => { seen.set(keyOf(k), v); return v; };
+const recall = (k) => seen.get(keyOf(k)) ?? null;
 
 function SignInForm() {
   const [mode, setMode] = useState('in'), [busy, setBusy] = useState(false), [err, setErr] = useState('');
@@ -40,19 +48,20 @@ function SignInForm() {
 }
 
 function Leaderboard() {
-  const [period, setPeriod] = useState('week'), [data, setData] = useState(null), [err, setErr] = useState('');
+  const [period, setPeriod] = useState('week'), [data, setData] = useState(() => recall('lb:week')), [err, setErr] = useState('');
   useEffect(() => {
     let live = true;
     setErr('');
     syncSessions().then(() => api(`leaderboard?period=${period}&tz=${new Date().getTimezoneOffset()}`))
-      .then((d) => live && setData(d)).catch((x) => live && setErr(x.message));
+      .then((d) => live && setData(remember(`lb:${period}`, d)))
+      .catch((x) => live && !recall(`lb:${period}`) && setErr(x.message)); // offline with an old copy: keep showing it
     return () => { live = false; };
   }, [period]);
   const n = period === 'week' ? 7 : 30;
   return (
     <div className="mt-4 space-y-3">
       <div className="grid grid-cols-2 rounded-full bg-white/[.06] p-1 text-sm">
-        {[['week', 'This week'], ['month', '30 days']].map(([k, l]) => <button key={k} onClick={() => { setPeriod(k); setData(null); }} className={`h-9 rounded-full font-medium transition-colors ${period === k ? 'bg-white/15 text-white' : 'text-white/45'}`}>{l}</button>)}
+        {[['week', 'This week'], ['month', '30 days']].map(([k, l]) => <button key={k} onClick={() => { setPeriod(k); setData(recall(`lb:${k}`)); }} className={`h-9 rounded-full font-medium transition-colors ${period === k ? 'bg-white/15 text-white' : 'text-white/45'}`}>{l}</button>)}
       </div>
       {err && <p className="py-6 text-center text-sm text-rose-300">{err}</p>}
       {!err && !data && <p className="py-6 text-center text-sm text-white/40">Loading…</p>}
@@ -106,8 +115,9 @@ function RaceCard({ c, onOpen }) {
 
 function RaceSheet({ id, onClose, onChange }) {
   const [d, setD] = useState(null), [err, setErr] = useState(''), [busy, setBusy] = useState(false);
-  const load = useCallback(() => syncSessions().then(() => api(`competitions?op=get&id=${id}`)).then(setD).catch((x) => setErr(x.message)), [id]);
-  useEffect(() => { setD(null); setErr(''); if (id) load(); }, [id, load]);
+  const load = useCallback(() => syncSessions().then(() => api(`competitions?op=get&id=${id}`)).then((r) => setD(remember(`race:${id}`, r)))
+    .catch((x) => !recall(`race:${id}`) && setErr(x.message)), [id]);
+  useEffect(() => { setD(id ? recall(`race:${id}`) : null); setErr(''); if (id) load(); }, [id, load]);
   const c = d?.competition;
   const claim = async () => {
     setBusy(true);
@@ -157,9 +167,10 @@ function RaceSheet({ id, onClose, onChange }) {
 }
 
 function Races() {
-  const [list, setList] = useState(null), [err, setErr] = useState(''), [open, setOpen] = useState(null);
+  const [list, setList] = useState(() => recall('races')), [err, setErr] = useState(''), [open, setOpen] = useState(null);
   const [form, setForm] = useState(false), [name, setName] = useState(''), [days, setDays] = useState(7), [code, setCode] = useState(''), [busy, setBusy] = useState(false);
-  const load = useCallback(() => syncSessions().then(() => api('competitions?op=list')).then((r) => { setList(r.competitions); setErr(''); }).catch((x) => setErr(x.message)), []);
+  const load = useCallback(() => syncSessions().then(() => api('competitions?op=list')).then((r) => { setList(remember('races', r.competitions)); setErr(''); })
+    .catch((x) => !recall('races') && setErr(x.message)), []);
   useEffect(() => { load(); }, [load]);
   const go = async (fn) => { setBusy(true); try { const r = await fn(); await load(); if (r?.competition) { setOpen(r.competition.id); setForm(false); setName(''); setCode(''); } } catch (x) { toast(x.message); } setBusy(false); };
   const create = (e) => { e.preventDefault(); go(() => api('competitions?op=create', { method: 'POST', body: { name, days } })); };
