@@ -37,7 +37,7 @@ Only import `server/db.js` from `api/` or `scripts/`, never from `src/`: everyth
 
 ### Login and leaderboard (Neon Auth)
 
-Players can sign in (email + password) from **Journey → Leaderboard** and compare focus time over the last 7 or 30 days.
+Players sign in (email + password) from the **Ranks** tab, see their focus chart and the leaderboard for the last 7 or 30 days, and race friends in **competitions**.
 
 - `src/lib/auth.js` signs people in through `api/auth.js`, a small proxy to Neon Auth. Browsers block Neon Auth's cookie on github.io (third-party cookie), so the proxy talks to Neon Auth server-to-server and gives the app an opaque session token to send as `Authorization: Bearer`.
 - `src/lib/sync.js` uploads finished sessions from the past week, with that token, to `POST /api/sessions`.
@@ -54,6 +54,11 @@ Setup:
 The app at `https://guanliang9.github.io/Foresty/` calls the API on Vercel; `server/cors.js` allows that origin. Without `NEON_AUTH_URL` the leaderboard card is hidden and the app works as before.
 
 Limits: the app can't fully prove a session was honest, since a determined player could craft fake requests within those limits. Fine for friends; for a public leaderboard, sessions would need to be timed on the server.
+
+**Competitions** (`api/competitions.js`): from Ranks → Races, anyone signed in can start a race lasting 1, 3, 7, 14 or 30 days. The creator gets a 6-character invite code to share; friends join with it (up to 50 players). Standings are the total focus time of every finished session that ended inside the race window. When the timer runs out, whoever has the most focus time (ties share the win, and nobody wins if nobody focused) can claim the prize once: 100 coins for a day, 430 for a week, 1280 for a month. The server marks the prize as claimed, so it can't be collected twice, and the app adds the coins to the grove.
+
+Tables: `profiles`, `focus_sessions`, `competitions`, `competition_members` (all created automatically).
+
 
 ## Put it on your phone
 

@@ -4,6 +4,7 @@ import { getSql } from '../server/db.js';
 import { cors } from '../server/cors.js';
 import { getUser } from '../server/auth.js';
 import { ensureSchema } from '../server/schema.js';
+import { upsertProfile } from '../server/profiles.js';
 
 const MAX_ITEMS = 200;
 const MAX_SECS = 180 * 60; // the longest tree in the app
@@ -21,11 +22,6 @@ function clean(x, now) {
   return { id, start: new Date(start).toISOString(), end: new Date(end).toISOString(), secs, species };
 }
 
-export function displayName(user) {
-  const n = (user.name || '').trim() || (user.email || '').split('@')[0] || 'Grower';
-  return n.replace(/\s+/g, ' ').slice(0, 24);
-}
-
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   res.setHeader('Cache-Control', 'no-store');
@@ -41,8 +37,7 @@ export default async function handler(req, res) {
   try {
     await ensureSchema();
     const sql = getSql();
-    await sql`insert into profiles (user_id, display_name) values (${user.id}, ${displayName(user)})
-      on conflict (user_id) do update set display_name = excluded.display_name, updated_at = now()`;
+    await upsertProfile(user);
     if (rows.length) {
       // unnest turns the arrays into rows, so all sessions go in with one query.
       await sql`insert into focus_sessions (user_id, client_id, started_at, ended_at, seconds, species)
