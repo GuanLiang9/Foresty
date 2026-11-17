@@ -1,7 +1,8 @@
 // Quick connection test: npm run db:check
-import { sql } from '../server/db.js';
+import { getSql } from '../server/db.js';
 
 try {
+  const sql = getSql();
   const [row] = await sql`select version(), now() as server_time, current_database() as db`;
   console.log('Connected to Neon');
   console.log('  database:', row.db);

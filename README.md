@@ -2,7 +2,7 @@
 
 A focus timer that grows a plant while you stay off your phone. Leave, and it withers. Every session lands in an isometric grove that fills up over days, weeks and years.
 
-Installable PWA, mobile-first, works offline, no account, no backend. All data stays in the browser's `localStorage`.
+Installable PWA, mobile-first, works offline, no account needed. Game data stays in the browser's `localStorage`; a small Vercel + Neon backend is being added for login and leaderboards.
 
 ## Run it
 
@@ -15,15 +15,25 @@ npm run preview  # serve the build
 
 Add `?demo` to the URL to run time at ×60 (a 25-minute session takes 25 seconds). Useful for trying the whole loop quickly.
 
-## Database (Neon Postgres)
+## Backend (Vercel + Neon Postgres)
 
-The app still runs fully on `localStorage`. A Neon Postgres connection is wired in for server-side code, ready for syncing data later.
+The app is hosted on Vercel, which also runs the backend: every file in `api/` becomes a serverless function at `/api/<name>`. Functions talk to Neon Postgres through `server/db.js`. Game data still lives in `localStorage`; the backend is the base for login and leaderboards.
 
-1. In the [Neon Console](https://console.neon.tech), open project `blue-river-83534589` and click **Connect** to copy the connection strings.
-2. `cp .env.example .env` and paste them into `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
-3. `npm run db:check` should print `Connected to Neon`.
+```
+phone/browser ──fetch('api/health')──▶ Vercel function (api/health.js) ──SQL over HTTPS──▶ Neon
+     (no secrets)                          (reads DATABASE_URL)
+```
 
-`server/db.js` exports a `sql` client. Only import it from Node scripts or serverless functions, never from `src/`: the connection string contains your database password, and anything in `src/` ends up in the public browser bundle.
+**Connect the database on Vercel** (no clone needed):
+1. Neon Console → project `blue-river-83534589` → **Connect** → copy the **pooled** connection string.
+2. Vercel → your project → **Settings → Environment Variables** → add `DATABASE_URL` with that value for Production and Preview.
+3. Redeploy, then open `https://<your-app>.vercel.app/api/health`. You should see `{"ok":true,"database":"connected",...}`.
+
+(Alternative: Vercel → **Storage / Integrations → Neon** links the project and sets `DATABASE_URL` for you.)
+
+**Locally:** `cp .env.example .env`, paste the strings, then `npm run db:check`. To run the API functions locally use `npx vercel dev` instead of `npm run dev`.
+
+Only import `server/db.js` from `api/` or `scripts/`, never from `src/`: everything in `src/` is shipped to the browser, and the connection string contains your database password.
 
 ## Put it on your phone
 
