@@ -13,6 +13,6 @@ export async function api(path, { method = 'GET', body } = {}) {
   if (token) headers.Authorization = `Bearer ${token}`; // lets the API know who you are
   const res = await fetch(`${BASE}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  if (!res.ok) throw Object.assign(new Error(data?.error || `Request failed (${res.status})`), { status: res.status });
   return data;
 }
