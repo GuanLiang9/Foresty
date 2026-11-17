@@ -35,6 +35,20 @@ phone/browser ──fetch('api/health')──▶ Vercel function (api/health.js)
 
 Only import `server/db.js` from `api/` or `scripts/`, never from `src/`: everything in `src/` is shipped to the browser, and the connection string contains your database password.
 
+### Login and leaderboard (Neon Auth)
+
+Players can sign in (email + password) from **Journey → Leaderboard** and compare focus time over the last 7 or 30 days.
+
+- `src/lib/auth.js` signs people in with Neon Auth and gets a short-lived token (JWT).
+- `src/lib/sync.js` uploads finished sessions from the past week, with that token, to `POST /api/sessions`.
+- `api/sessions.js` checks the token against Neon Auth's public keys (`server/auth.js`), sanity-checks each session (max 180 min, not in the future, not longer than the real time that passed) and stores it. Re-sending the same session is ignored.
+- `api/leaderboard.js` sums the stored sessions per player.
+- Tables (`profiles`, `focus_sessions`) are created automatically on the first API call (`server/schema.js`).
+
+Setup: copy the **Auth URL** from Neon Console → Auth → Configuration into Vercel as `VITE_NEON_AUTH_URL`, add your Vercel domain(s) to Neon Auth's trusted domains, then redeploy. Without `VITE_NEON_AUTH_URL` the leaderboard card is hidden and the app works as before.
+
+Limits: the app can't fully prove a session was honest, since a determined player could craft fake requests within those limits. Fine for friends; for a public leaderboard, sessions would need to be timed on the server.
+
 ## Put it on your phone
 
 Installing a PWA needs HTTPS, so host the build. The included workflow deploys to GitHub Pages on every push to `main`:

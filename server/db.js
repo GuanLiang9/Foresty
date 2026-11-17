@@ -23,3 +23,6 @@ export function getSql() {
   client = neon(url);
   return client;
 }
+
+// Tests swap in a local database client here; the app never calls this.
+export function setSqlForTests(fake) { client = fake; }
