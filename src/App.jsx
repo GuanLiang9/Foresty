@@ -93,7 +93,7 @@ function Settings({ open, onClose }) {
           {window.__install && <button onClick={install} className="cta h-9 rounded-full px-4 text-sm font-semibold">Install</button>}
         </Row>
       )}
-      <Row title="Cloud sync" desc={acc.status === 'in' ? (sync.phase === 'offline' ? 'Offline. Your changes are kept and sent when you are back online.' : 'Plants, history, coins and settings follow your account on every device.') : 'Sign in from the Ranks tab to keep your grove in sync across your phone and browser.'}>
+      <Row title="Cloud sync" desc={acc.status === 'in' ? (sync.phase === 'offline' ? 'Offline. Your changes are kept and sent when you are back online.' : sync.phase === 'error' ? `Could not sync (${sync.error}). Your data is safe on this device.` : 'Plants, history, coins and settings follow your account on every device.') : 'Sign in from the Ranks tab to keep your grove in sync across your phone and browser.'}>
         {acc.status === 'in' ? <button onClick={() => syncGame()} disabled={sync.phase === 'syncing'} className="press h-9 rounded-full bg-white/10 px-4 text-sm font-medium disabled:opacity-40">{sync.phase === 'syncing' ? 'Syncing…' : sync.phase === 'ok' ? 'Synced ✓' : 'Sync now'}</button> : <span className="text-xs text-white/40">Off</span>}
       </Row>
       <Row title="Backup" desc="A file copy of your grove. Export it to keep it safe.">
