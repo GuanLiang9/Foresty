@@ -16,4 +16,14 @@ export default defineConfig({
     'import.meta.env.NEON_AUTH_URL': JSON.stringify(NEON_AUTH_URL),
     'import.meta.env.API_URL': JSON.stringify(API_URL),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // React rarely changes between releases, so it gets its own file. Its name (a hash of its contents)
+        // stays the same after an app update, so returning visitors keep their cached copy and only
+        // download the app code that actually changed.
+        manualChunks: (id) => (/node_modules\/(react|react-dom|scheduler)\//.test(id) ? 'react' : undefined),
+      },
+    },
+  },
 });

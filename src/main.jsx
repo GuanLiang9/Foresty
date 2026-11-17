@@ -2,7 +2,7 @@ import { Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/inter';
 import './index.css';
-import App from './App';
+import App, { preloadScreens } from './App';
 
 // Chrome/Android fires this before it will show an install prompt; Settings triggers it later.
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__install = e; });
@@ -35,11 +35,17 @@ addEventListener('orientationchange', fit);
 
 createRoot(document.getElementById('root')).render(<Boundary><App /></Boundary>);
 
+// Once the app is on screen and the browser is idle, fetch the other tabs' code so switching tabs never waits.
+const idle = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2000 }) : setTimeout(f, 300));
+const preloaded = new Promise((done) => window.addEventListener('load', () => idle(() => preloadScreens().then(done))));
+
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       await navigator.serviceWorker.register('./sw.js');
       const reg = await navigator.serviceWorker.ready;
+      // Waits for the other tabs' files too, so the offline copy includes every screen.
+      await preloaded;
       const urls = performance.getEntriesByType('resource').map((r) => r.name).filter((u) => u.startsWith(location.origin));
       reg.active?.postMessage({ cache: urls });
     } catch {}
