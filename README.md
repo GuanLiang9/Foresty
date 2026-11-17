@@ -2,7 +2,7 @@
 
 A focus timer that grows a plant while you stay off your phone. Leave, and it withers. Every session lands in an isometric grove that fills up over days, weeks and years.
 
-Installable PWA, mobile-first, works offline, no account needed. Game data stays in the browser's `localStorage`. Signing in is optional and only adds the leaderboard.
+Installable PWA, mobile-first, works offline, no account needed. Game data stays in the browser's `localStorage`. Signing in is optional and adds the **Ranks** tab: a leaderboard, your focus chart, and races against friends.
 
 **Live app:** https://guanliang9.github.io/Foresty/
 
@@ -78,13 +78,25 @@ Add `?demo` to the URL (e.g. `http://localhost:5173/?demo`) to run time at ×60:
 | `GET /api/health` | Checks the API can reach Neon. Returns `{"ok":true,"database":"connected",...}`, or a plain-English reason it can't (without leaking the password) |
 | `/api/auth?op=sign-up\|sign-in\|sign-out\|session` | Proxy to Neon Auth (see below) |
 | `POST /api/sessions` | A signed-in player uploads finished sessions from the last week |
-| `GET /api/leaderboard?period=week\|month` | Top players by focus time over 7 or 30 days, with your own rank if signed in |
+| `GET /api/leaderboard?period=week\|month&tz=<offset>` | Top 50 players by focus time over 7 or 30 days. If signed in, also your rank and your minutes per day (in your time zone) for the chart |
+| `GET /api/competitions?op=list` | Races you're in, with your rank and the current leader |
+| `GET /api/competitions?op=get&id=<id>` | One race with full standings (members only) |
+| `POST /api/competitions?op=create` | Start a race: `{ name, days }` (1–30). Returns its invite code |
+| `POST /api/competitions?op=join` | Join with `{ code }` |
+| `POST /api/competitions?op=claim` | The winner collects the prize once the race has ended: `{ id }` |
 
-Shared server code lives in `server/`: `db.js` (Neon client, `getSql()`), `auth.js` (session checks), `cors.js` (which sites may call the API), `schema.js` (creates the `profiles` and `focus_sessions` tables on first use, so there is no migration step).
+Shared server code lives in `server/`: `db.js` (Neon client, `getSql()`), `auth.js` (session checks), `cors.js` (which sites may call the API), `profiles.js` (creates or updates your leaderboard name), `schema.js` (creates the tables on first use, so there is no migration step).
+
+| Table | Holds |
+| --- | --- |
+| `profiles` | One row per signed-in player: Neon Auth user id and display name |
+| `focus_sessions` | One row per uploaded session: start, end, seconds, tree |
+| `competitions` | One row per race: name, invite code, creator, start, end, prize |
+| `competition_members` | Who joined which race, and when the winner claimed the prize |
 
 ### Login (Neon Auth through the Vercel API)
 
-Players sign up or sign in with email + password from **Journey → Leaderboard**.
+Players sign up or sign in with email + password from the **Ranks** tab (the last tab in the nav bar).
 
 The browser never talks to Neon Auth directly. Neon Auth keeps you signed in with a cookie, but the app is on `github.io` and Neon Auth on `neon.tech`, so browsers block that cookie as a third-party cookie. Instead:
 
@@ -93,17 +105,38 @@ The browser never talks to Neon Auth directly. Neon Auth keeps you signed in wit
 3. The app keeps that token in `localStorage` and sends it as `Authorization: Bearer <token>`.
 4. `server/auth.js` checks the token with Neon Auth on every API call that needs a user.
 
-### Leaderboard
+### Ranks tab: leaderboard and chart
 
-Under **Journey → Leaderboard**, with a 7-day and a 30-day view.
+**Ranks → Leaderboard** has a *This week* / *30 days* switch. It shows:
+- a bar chart of your own focus minutes per day (7 or 30 bars, today on the right)
+- your rank and total, then the top 50 players
 
-- `src/lib/sync.js` uploads your completed sessions from the past week (Plant a tree, Pomodoro and Free focus all count; withered ones don't).
+How the data gets there:
+- `src/lib/sync.js` uploads your completed sessions from the past week (Plant a tree, Pomodoro and Free focus all count; withered ones and `?demo` ones don't).
 - `api/sessions.js` sanity-checks each one (1–180 min, not in the future, not longer than the real time that passed) and stores it. Sending the same session twice is ignored.
 - `api/leaderboard.js` sums focus time per player and ranks them (ties share a rank).
 
-Limit: the server can't fully prove a session was honest, since a determined player could craft fake requests within those checks. Fine for friends; a public leaderboard would need sessions timed on the server.
+### Races (friend competitions)
 
-**Planned (not merged yet):** a Leaderboard tab in the nav bar, charts, and timed competitions with winner rewards.
+**Ranks → Races** lets anyone signed in start a timed race and invite friends.
+
+1. Pick a name and a length. The prize grows with the length but pays less per day:
+
+   | Length | Winner's prize |
+   | --- | --- |
+   | 1 day | 100 coins |
+   | 3 days | 230 coins |
+   | 1 week | 430 coins |
+   | 2 weeks | 720 coins |
+   | 1 month | 1280 coins |
+
+2. You get a 6-character **invite code** (no look-alike characters such as 0/O or 1/I) with a copy button. Friends enter it under Races to join, until the race ends. Up to 50 players per race, and up to 10 running races you created at once.
+3. Standings are the total focus time of every uploaded session that **ended inside the race window**, shown as bars. Nothing extra is uploaded for races.
+4. When time runs out, whoever has the most focus time wins. Ties all win; if nobody focused, nobody wins. The winner taps **Claim**. The server records the claim so the prize can only be collected once, and the app adds the coins to your grove.
+
+Note for long races: the app only uploads sessions from the past week, so open it at least once a week while signed in or older sessions won't count.
+
+Limit: the server can't fully prove a session was honest, since a determined player could craft fake requests within those checks. Fine for friends; a public leaderboard or real prizes would need sessions timed on the server.
 
 ## Setup
 
@@ -116,7 +149,7 @@ Limit: the server can't fully prove a session was honest, since a determined pla
 | `API_URL` | GitHub Actions variable | Your Vercel production URL, e.g. `https://foresty.vercel.app` (no trailing slash) | No |
 | `ALLOWED_ORIGINS` | Vercel (optional) | Extra sites allowed to call the API, comma-separated, e.g. `http://localhost:5173`. GitHub Pages is always allowed | No |
 
-`vite.config.js` reads `NEON_AUTH_URL` and `API_URL` without the usual `VITE_` prefix, so the same names work on Vercel and in GitHub Actions. If `NEON_AUTH_URL` is missing from the build, the leaderboard card is simply hidden.
+`vite.config.js` reads `NEON_AUTH_URL` and `API_URL` without the usual `VITE_` prefix, so the same names work on Vercel and in GitHub Actions. If `NEON_AUTH_URL` is missing from the build, the Ranks tab just says the leaderboard isn't set up yet.
 
 ### 2. Neon
 
@@ -155,7 +188,7 @@ With `vercel dev` the app and API share one address, so `API_URL` isn't needed. 
 | Problem | Fix |
 | --- | --- |
 | `/api/health` says `DATABASE_URL is not set` | Add it in Vercel for Production and Preview, then redeploy |
-| Leaderboard card doesn't show on GitHub Pages | `NEON_AUTH_URL` wasn't set when the app was built. Add the Actions variable, then deploy again |
+| Ranks tab says "not set up on this build yet" | `NEON_AUTH_URL` wasn't set when the app was built. Add the Actions variable, then deploy again |
 | App on Pages can't reach the API | Check the `API_URL` variable is your Vercel URL with no trailing slash, then deploy again |
 | Pages still shows old code after a fix | The Deploy workflow cancels older runs when a new one starts, and **re-running an old run deploys that old commit**. Re-run the newest run on `main`, or start a fresh one with **Run workflow** |
 | Sign-in fails with a domain/origin error | Add the site to Neon Auth → Domains |
@@ -166,6 +199,7 @@ With `vercel dev` the app and API share one address, so `API_URL` isn't needed. 
 | --- | --- |
 | Focus modes | Plant a tree, Pomodoro and Free focus (see above). Free focus leftover minutes still earn coins |
 | Session controls | Tags, a one-line intention, 10-second cancel window, pause (5 min total per session), hold-to-give-up, optional auto-start after a break |
+| Ranks (optional sign-in) | Weekly / 30-day leaderboard, daily focus chart, timed races with invite codes and coin prizes |
 | Challenges | Monthly 15-hour challenge and seven yearly events, each rewarding a species that cannot be bought (see below). Journey shows an event calendar with countdowns |
 | Boosts | 2× coins on the next session, earned by reaching the daily goal or clearing all three daily quests |
 | Deep Focus | Leaving the app for more than 10 seconds withers the plant. Screen wake lock keeps the phone from locking mid-session |
