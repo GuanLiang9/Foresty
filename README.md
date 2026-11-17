@@ -39,9 +39,9 @@ Only import `server/db.js` from `api/` or `scripts/`, never from `src/`: everyth
 
 Players can sign in (email + password) from **Journey → Leaderboard** and compare focus time over the last 7 or 30 days.
 
-- `src/lib/auth.js` signs people in with Neon Auth and gets a short-lived token (JWT).
+- `src/lib/auth.js` signs people in through `api/auth.js`, a small proxy to Neon Auth. Browsers block Neon Auth's cookie on github.io (third-party cookie), so the proxy talks to Neon Auth server-to-server and gives the app an opaque session token to send as `Authorization: Bearer`.
 - `src/lib/sync.js` uploads finished sessions from the past week, with that token, to `POST /api/sessions`.
-- `api/sessions.js` checks the token against Neon Auth's public keys (`server/auth.js`), sanity-checks each session (max 180 min, not in the future, not longer than the real time that passed) and stores it. Re-sending the same session is ignored.
+- `api/sessions.js` checks the token with Neon Auth (`server/auth.js`), sanity-checks each session (max 180 min, not in the future, not longer than the real time that passed) and stores it. Re-sending the same session is ignored.
 - `api/leaderboard.js` sums the stored sessions per player.
 - Tables (`profiles`, `focus_sessions`) are created automatically on the first API call (`server/schema.js`).
 
