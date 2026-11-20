@@ -58,6 +58,17 @@ const statements = (sql) => [
   // Speeds up "my focus per day" on the leaderboard and race standings: both look up one player's
   // sessions in a time window. The index holds the seconds too, so Postgres never reads the table.
   sql`create index if not exists focus_sessions_user_ended_idx on focus_sessions (user_id, ended_at) include (seconds)`,
+  sql`alter table profiles add column if not exists friend_code text`,
+  sql`create unique index if not exists profiles_friend_code_idx on profiles (friend_code)`,
+  // One row per direction. A request is one 'pending' row (user_id asked friend_id); accepting flips it and adds the reverse row.
+  sql`create table if not exists friendships (
+    user_id text not null references profiles(user_id) on delete cascade,
+    friend_id text not null references profiles(user_id) on delete cascade,
+    status text not null check (status in ('pending','accepted')),
+    created_at timestamptz not null default now(),
+    primary key (user_id, friend_id)
+  )`,
+  sql`create index if not exists friendships_friend_idx on friendships (friend_id, status)`,
 ];
 
 export function ensureSchema() {

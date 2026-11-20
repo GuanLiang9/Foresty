@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Trophy, Swords, Copy, LogOut, Crown, Plus } from 'lucide-react';
+import { Trophy, Swords, Copy, LogOut, Crown, Plus, Users, Check, X, ChevronRight } from 'lucide-react';
 import { Coin, Sheet, toast } from '../components/ui';
 import { DailyBars, RaceBars } from '../components/Charts';
-import { useAccount, getAccount, signIn, signUp, signOut } from '../lib/auth';
-import { syncSessions, signOutSynced } from '../lib/sync';
+import { useAccount, signIn, signUp } from '../lib/auth';
+import FriendGrove from '../components/FriendGrove';
+import { syncSessions, signOutSynced, pushIfChanged } from '../lib/sync';
+import { recall, remember } from '../lib/cache';
 import { api } from '../lib/api';
 import { dur } from '../lib/util';
 import { addCoins, haptic, sfx } from '../store';
@@ -12,14 +14,6 @@ const input = 'h-12 w-full rounded-2xl bg-white/[.07] px-4 text-[15px] outline-n
 const DURATIONS = [[1, '1 day'], [3, '3 days'], [7, '1 week'], [14, '2 weeks'], [30, '1 month']];
 // Must match rewardFor() in api/competitions.js (the server is what actually pays out).
 const prize = (days) => Math.round((100 * days ** 0.75) / 10) * 10;
-
-// Last answers from the server, kept while the app is open ("stale while revalidate"): coming back to this tab
-// shows the previous leaderboard instantly while a fresh copy loads, instead of a blank "Loading…" every time.
-// Keyed by account, so signing in as someone else never shows the previous person's races.
-const seen = new Map();
-const keyOf = (k) => `${getAccount().user?.id}:${k}`;
-const remember = (k, v) => { seen.set(keyOf(k), v); return v; };
-const recall = (k) => seen.get(keyOf(k)) ?? null;
 
 function SignInForm() {
   const [mode, setMode] = useState('in'), [busy, setBusy] = useState(false), [err, setErr] = useState('');
@@ -113,7 +107,7 @@ function RaceCard({ c, onOpen }) {
   );
 }
 
-function RaceSheet({ id, onClose, onChange }) {
+function RaceSheet({ id, onClose, onChange, onMember }) {
   const [d, setD] = useState(null), [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const load = useCallback(() => syncSessions().then(() => api(`competitions?op=get&id=${id}`)).then((r) => setD(remember(`race:${id}`, r)))
     .catch((x) => !recall(`race:${id}`) && setErr(x.message)), [id]);
@@ -139,6 +133,7 @@ function RaceSheet({ id, onClose, onChange }) {
             <span className="text-white/55">{c.ended ? 'Finished' : left(new Date(c.endsAt) - Date.now())}</span>
             <span className="flex items-center gap-1.5 text-amber-200"><Coin size={14} /> Winner gets {c.reward}</span>
           </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/[.08]"><div className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-cyan-300 transition-all duration-700" style={{ width: `${c.ended ? 100 : Math.max(2, Math.min(100, ((Date.now() - new Date(c.startsAt)) / (new Date(c.endsAt) - new Date(c.startsAt))) * 100))}%` }} /></div>
           {!c.ended && (
             <button onClick={copy} className="press flex w-full items-center justify-between rounded-2xl bg-white/[.07] px-4 py-3 text-left">
               <span><span className="block text-[11px] uppercase tracking-[.2em] text-white/40">Invite code</span><span className="tnum text-2xl font-semibold tracking-[.25em]">{c.code}</span></span>
@@ -148,11 +143,14 @@ function RaceSheet({ id, onClose, onChange }) {
           <RaceBars rows={d.standings} />
           <ol className="space-y-1.5">
             {d.standings.map((r, i) => (
-              <li key={i} className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 ${r.me ? 'bg-emerald-400/15 ring-1 ring-emerald-300/30' : 'bg-white/[.04]'}`}>
-                <span className={`tnum w-6 text-center text-sm font-semibold ${r.rank === 1 ? 'text-amber-300' : 'text-white/40'}`}>{r.rank}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.name}{r.me && <span className="text-emerald-300"> · you</span>}</span>
-                {c.ended && r.leader && <Crown size={15} className="text-amber-300" />}
-                <span className="tnum text-sm">{dur(r.minutes)}</span>
+              <li key={i}>
+                <button onClick={() => onMember({ uid: r.uid, name: r.me ? 'Your' : r.name }, c)} className={`press flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left ${r.me ? 'bg-emerald-400/15 ring-1 ring-emerald-300/30' : 'bg-white/[.04]'}`}>
+                  <span className={`tnum w-6 text-center text-sm font-semibold ${r.rank === 1 ? 'text-amber-300' : 'text-white/40'}`}>{r.rank}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.name}{r.me && <span className="text-emerald-300"> · you</span>}<span className="block text-[11px] font-normal text-white/40">{r.plants} plant{r.plants === 1 ? '' : 's'}{r.rank > 1 && d.standings[0].minutes > r.minutes ? ` · −${dur(d.standings[0].minutes - r.minutes)}` : ''}</span></span>
+                  {c.ended && r.leader && <Crown size={15} className="text-amber-300" />}
+                  <span className="tnum text-sm">{dur(r.minutes)}</span>
+                  <ChevronRight size={15} className="text-white/25" />
+                </button>
               </li>
             ))}
           </ol>
@@ -160,14 +158,76 @@ function RaceSheet({ id, onClose, onChange }) {
           {c.ended && c.won && c.claimed && <p className="text-center text-sm text-emerald-300">Reward claimed. Well played!</p>}
           {c.ended && !c.won && <p className="text-center text-sm text-white/45">{c.leader ? `${c.leader} won this one.` : 'Nobody focused this time.'}</p>}
           {!c.ended && <p className="text-center text-xs text-white/35">Every finished session counts. The most focus time when the timer ends wins.</p>}
+          <p className="text-center text-xs text-white/35">Tap a player to see their grove</p>
         </div>
       )}
     </Sheet>
   );
 }
 
+function Friends() {
+  const [d, setD] = useState(() => recall('friends')), [code, setCode] = useState(() => recall('fcode')), [err, setErr] = useState('');
+  const [add, setAdd] = useState(''), [busy, setBusy] = useState(false), [who, setWho] = useState(null), [rm, setRm] = useState(null);
+  const load = useCallback(() => pushIfChanged().catch(() => {}).then(() => api('friends?op=list')).then((r) => { setD(remember('friends', r)); setErr(''); })
+    .catch((x) => !recall('friends') && setErr(x.message)), []);
+  useEffect(() => { load(); api('friends?op=me').then((r) => setCode(remember('fcode', r.code))).catch(() => {}); }, [load]);
+  const act = async (fn, msg) => { setBusy(true); try { const r = await fn(); if (msg) toast(msg(r)); await load(); return true; } catch (x) { toast(x.message); } finally { setBusy(false); } };
+  const request = async (e) => {
+    e.preventDefault();
+    const ok = await act(() => api('friends?op=request', { method: 'POST', body: { code: add } }), (r) => (r.status === 'accepted' ? `You and ${r.name} are friends` : `Request sent to ${r.name}`));
+    if (ok) setAdd('');
+  };
+  const accept = (uid) => act(() => api('friends?op=accept', { method: 'POST', body: { uid } }), () => 'Friend added');
+  const drop = (uid) => act(() => api('friends?op=remove', { method: 'POST', body: { uid } }));
+  const remove = (uid) => { if (rm !== uid) return setRm(uid); setRm(null); drop(uid); };
+  const copy = async () => { try { await navigator.clipboard.writeText(code); toast('Code copied'); } catch { toast(`Code: ${code}`); } };
+  const rows = d ? [{ name: 'You', minutes: d.me.minutes, me: true }, ...d.friends.slice(0, 5)].sort((p, q) => q.minutes - p.minutes) : [];
+  return (
+    <div className="mt-4 space-y-3">
+      {code && (
+        <button onClick={copy} className="glass press flex w-full items-center justify-between rounded-3xl px-4 py-3 text-left">
+          <span><span className="block text-[11px] uppercase tracking-[.2em] text-white/40">Your friend code</span><span className="tnum text-2xl font-semibold tracking-[.2em]">{code}</span></span>
+          <Copy size={18} className="text-white/50" />
+        </button>
+      )}
+      <form onSubmit={request} className="flex gap-2">
+        <input className={`${input} tracking-[.2em] uppercase`} placeholder="Friend code" maxLength={8} value={add} onChange={(e) => setAdd(e.target.value)} />
+        <button disabled={busy || add.length < 4} className="press h-12 shrink-0 rounded-full bg-white/10 px-5 text-sm font-semibold disabled:opacity-40">Add</button>
+      </form>
+      {err && <p className="py-4 text-center text-sm text-rose-300">{err}</p>}
+      {!err && !d && <p className="py-4 text-center text-sm text-white/40">Loading…</p>}
+      {d?.incoming.map((f) => (
+        <div key={f.uid} className="glass anim-rise flex items-center gap-3 rounded-3xl bg-emerald-400/10 p-3 pl-4">
+          <span className="min-w-0 flex-1 truncate text-sm"><b>{f.name}</b> <span className="text-white/50">wants to be friends</span></span>
+          <button aria-label="Accept" disabled={busy} onClick={() => accept(f.uid)} className="press flex h-9 w-9 items-center justify-center rounded-full bg-emerald-400 text-black"><Check size={17} /></button>
+          <button aria-label="Decline" disabled={busy} onClick={() => drop(f.uid)} className="press flex h-9 w-9 items-center justify-center rounded-full bg-white/10"><X size={16} /></button>
+        </div>
+      ))}
+      {d && d.friends.length > 0 && (
+        <div className="glass anim-rise rounded-3xl p-4">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[.2em] text-white/45">This week</div>
+          <RaceBars rows={rows} />
+        </div>
+      )}
+      {d?.friends.map((f) => (
+        <div key={f.uid} className="glass flex items-center gap-1 rounded-3xl p-1.5 pl-4">
+          <button onClick={() => setWho(f)} className="press flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left">
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{f.name}<span className="block text-xs font-normal text-white/45">{dur(f.minutes)} this week</span></span>
+            <ChevronRight size={16} className="text-white/30" />
+          </button>
+          <button aria-label="Remove friend" onClick={() => remove(f.uid)} onBlur={() => setRm(null)} className={`press flex h-9 items-center justify-center rounded-full px-3 text-xs ${rm === f.uid ? 'bg-rose-500/30 text-rose-200' : 'text-white/30'}`}>{rm === f.uid ? 'Remove?' : <X size={15} />}</button>
+        </div>
+      ))}
+      {d?.outgoing.map((f) => <div key={f.uid} className="flex items-center justify-between rounded-2xl bg-white/[.04] px-4 py-2.5 text-sm"><span className="truncate">{f.name}</span><span className="text-xs text-white/40">Pending</span></div>)}
+      {d && !d.friends.length && !d.incoming.length && !d.outgoing.length && <p className="py-4 text-center text-sm text-white/45">No friends yet. Share your code, or enter theirs, to see each other's focus hours and groves.</p>}
+      <FriendGrove who={who} onClose={() => setWho(null)} />
+    </div>
+  );
+}
+
 function Races() {
   const [list, setList] = useState(() => recall('races')), [err, setErr] = useState(''), [open, setOpen] = useState(null);
+  const [who, setWho] = useState(null), [back, setBack] = useState(null), [fixed, setFixed] = useState(null);
   const [form, setForm] = useState(false), [name, setName] = useState(''), [days, setDays] = useState(7), [code, setCode] = useState(''), [busy, setBusy] = useState(false);
   const load = useCallback(() => syncSessions().then(() => api('competitions?op=list')).then((r) => { setList(remember('races', r.competitions)); setErr(''); })
     .catch((x) => !recall('races') && setErr(x.message)), []);
@@ -175,6 +235,12 @@ function Races() {
   const go = async (fn) => { setBusy(true); try { const r = await fn(); await load(); if (r?.competition) { setOpen(r.competition.id); setForm(false); setName(''); setCode(''); } } catch (x) { toast(x.message); } setBusy(false); };
   const create = (e) => { e.preventDefault(); go(() => api('competitions?op=create', { method: 'POST', body: { name, days } })); };
   const join = (e) => { e.preventDefault(); go(() => api('competitions?op=join', { method: 'POST', body: { code } })); };
+  // Sheets own a history entry each, so swap one for the other instead of stacking them.
+  const viewMember = (m, c) => {
+    setBack(c.id); setOpen(null);
+    setTimeout(() => { setFixed({ a: +new Date(c.startsAt), b: +new Date(c.endsAt), label: `${c.name} · race window` }); setWho(m); }, 350);
+  };
+  const closeGrove = () => { setWho(null); if (back) { const id = back; setBack(null); setTimeout(() => setOpen(id), 350); } };
   const winning = list?.filter((c) => c.won && !c.claimed).length || 0;
   return (
     <div className="mt-4 space-y-3">
@@ -205,7 +271,8 @@ function Races() {
       {!err && !list && <p className="py-4 text-center text-sm text-white/40">Loading…</p>}
       {list?.length === 0 && <p className="py-4 text-center text-sm text-white/45">No races yet. Start one and share the code with friends.</p>}
       {list?.map((c) => <RaceCard key={c.id} c={c} onOpen={() => setOpen(c.id)} />)}
-      <RaceSheet id={open} onClose={() => setOpen(null)} onChange={load} />
+      <RaceSheet id={open} onClose={() => setOpen(null)} onChange={load} onMember={viewMember} />
+      <FriendGrove who={who} fixed={fixed} onClose={closeGrove} />
     </div>
   );
 }
@@ -223,12 +290,12 @@ export default function Ranks() {
       {acc.status === 'out' && <SignInForm />}
       {acc.status === 'in' && (
         <>
-          <div className="mt-5 grid grid-cols-2 rounded-full bg-white/[.06] p-1 text-sm">
-            {[['board', 'Leaderboard', Trophy], ['races', 'Races', Swords]].map(([k, l, Icon]) => (
+          <div className="mt-5 grid grid-cols-3 rounded-full bg-white/[.06] p-1 text-sm">
+            {[['board', 'Board', Trophy], ['friends', 'Friends', Users], ['races', 'Races', Swords]].map(([k, l, Icon]) => (
               <button key={k} onClick={() => setView(k)} className={`flex h-10 items-center justify-center gap-2 rounded-full font-medium transition-colors ${view === k ? 'bg-white/15 text-white' : 'text-white/45'}`}><Icon size={15} />{l}</button>
             ))}
           </div>
-          {view === 'board' ? <Leaderboard /> : <Races />}
+          {view === 'board' ? <Leaderboard /> : view === 'friends' ? <Friends /> : <Races />}
         </>
       )}
     </div>
