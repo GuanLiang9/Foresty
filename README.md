@@ -79,13 +79,21 @@ An empty side can never wipe a full one. Signing into a *different* account on a
 `npm test` runs the merge rules. `npm run test:e2e` drives two simulated devices in Chromium (sign-up with local data, fresh sign-in, offline then online, simultaneous edits, leaderboard dedupe, account switch) against an in-memory Postgres, with no secrets.
 
 
+## Compete
+
+Ranks tab, **Compete** view. The global leaderboard is a pinned **Everyone** card above your races; both open the same standings sheet.
+
+- Tap any player, in Everyone or a race, to see their focus per day. Groves open from there only for friends and race mates.
+- Races show a progress bar and each player's gap to the leader.
+- API: `GET /api/leaderboard?uid&from&to&tz` returns one player's daily minutes (window up to 31 days, sign-in required).
+
 ## Friends
 
 Ranks tab, **Friends** view (needs an account).
 
 - Share your 8-character friend code, or enter someone else's. Requests must be accepted; if you both ask, you are friends at once.
 - Tap a friend to open their grove: day / week / month focus hours, grown vs withered plants, and their isometric island.
-- In **Races**, tap any player in the standings to see their grove for the race window. A progress bar shows how much of the race has passed, and each row shows the gap to the leader.
+- In **Compete**, open a race, tap a player, then **View grove** to see their grove for the race window.
 - Only friends and race mates can view a grove (`server/access.js`). Notes and tags are never sent. Groves come from the synced `game_state`, so they need cloud sync to have run on that player's device.
 
 API: `api/friends.js` (`me`, `list`, `request`, `accept`, `remove`, `grove`). New tables `friendships` and `profiles.friend_code` are created by `ensureSchema()`.

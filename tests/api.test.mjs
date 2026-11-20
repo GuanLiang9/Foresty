@@ -97,3 +97,25 @@ test('races: the list and a single race agree on standings', async () => {
   assert.equal(outsider.status, 404, 'only members can see a race');
   assert.equal((await call('competitions', { user: 'host', query: { op: 'get', id: 'abc' } })).status, 404);
 });
+
+test('leaderboard: tap a player for their daily minutes; groves stay gated', async () => {
+  await call('sessions', { method: 'POST', user: 'ann', body: { sessions: [session('d1', 2, 30), session('d2', 3, 20), session('d3', 30, 45)] } });
+  const board = await call('leaderboard', { user: 'ann', query: { period: 'week', tz: '0' } });
+  assert.ok(board.body.top.every((r) => typeof r.uid === 'string'), 'rows carry uid');
+  const q = { uid: 'ann', from: String(now - 7 * 24 * H), to: String(now + H), tz: '0' };
+  const r = await call('leaderboard', { user: 'viewer', query: q });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.name, 'ann');
+  assert.equal(r.body.minutes, 95);
+  assert.equal(r.body.plants, 3);
+  assert.equal(r.body.daily.reduce((t, d) => t + d.minutes, 0), 95);
+  assert.ok(r.body.daily.length >= 2, 'minutes are split by day');
+  assert.equal(r.body.canGrove, false, 'a stranger may see the graph but not the grove');
+  assert.equal((await call('leaderboard', { user: 'ann', query: q })).body.canGrove, true, 'own grove');
+  assert.equal((await call('leaderboard', { user: null, query: q })).status, 401);
+  assert.equal((await call('leaderboard', { user: 'viewer', query: { ...q, to: String(now + 40 * 24 * H) } })).status, 400);
+  assert.equal((await call('leaderboard', { user: 'viewer', query: { ...q, uid: 'ghost' } })).status, 404);
+  const race = (await call('competitions', { user: 'ann', method: 'POST', query: { op: 'create' }, body: { name: 'G', days: 7 } })).body.competition;
+  await call('competitions', { user: 'viewer', method: 'POST', query: { op: 'join' }, body: { code: race.code } });
+  assert.equal((await call('leaderboard', { user: 'viewer', query: q })).body.canGrove, true, 'race mates may open the grove');
+});

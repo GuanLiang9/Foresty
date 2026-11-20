@@ -1,12 +1,16 @@
 import { dur } from '../lib/util';
 
 // Daily focus minutes as bars. `days` = [{ day: 'YYYY-MM-DD', minutes }]; missing days show as empty bars.
-export function DailyBars({ days, count }) {
+// Shows the last `count` days ending today, or `count` days from `start` (ms) when given (a race window).
+export function DailyBars({ days, count, start }) {
   const byDay = Object.fromEntries(days.map((d) => [d.day, d.minutes]));
+  const dk = (t) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  const todayKey = dk(new Date());
   const cells = [...Array(count)].map((_, i) => {
-    const t = new Date(); t.setDate(t.getDate() - (count - 1 - i));
-    const key = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-    return { key, minutes: byDay[key] || 0, label: 'SMTWTFS'[t.getDay()], today: i === count - 1 };
+    const t = start == null ? new Date() : new Date(start);
+    t.setDate(t.getDate() + (start == null ? -(count - 1 - i) : i));
+    const key = dk(t);
+    return { key, minutes: byDay[key] || 0, label: 'SMTWTFS'[t.getDay()], today: key === todayKey };
   });
   const max = Math.max(30, ...cells.map((c) => c.minutes));
   const W = 320, H = 110, gap = count > 14 ? 2 : 6, bw = (W - gap * (count - 1)) / count;

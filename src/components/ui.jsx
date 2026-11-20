@@ -117,3 +117,5 @@ export function Toasts() {
     </div>
   );
 }
+
+export const input = 'h-12 w-full rounded-2xl bg-white/[.07] px-4 text-[15px] outline-none ring-emerald-300/50 placeholder:text-white/30 focus:ring-2';
