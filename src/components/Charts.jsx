@@ -13,16 +13,18 @@ export function DailyBars({ days, count, start }) {
     return { key, minutes: byDay[key] || 0, label: 'SMTWTFS'[t.getDay()], today: key === todayKey };
   });
   const max = Math.max(30, ...cells.map((c) => c.minutes));
-  const W = 320, H = 110, gap = count > 14 ? 2 : 6, bw = (W - gap * (count - 1)) / count;
+  const W = 320, H = 110, gap = count > 14 ? 2 : 6, bw = (W - gap * (count - 1)) / count, pad = count <= 7 ? 14 : 0;
+  const short = (m) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m}m`);
   return (
-    <svg viewBox={`0 0 ${W} ${H + 18}`} className="w-full" role="img" aria-label="Your focus minutes per day">
+    <svg viewBox={`0 0 ${W} ${H + 18 + pad}`} className="w-full" role="img" aria-label="Your focus minutes per day">
       <defs><linearGradient id="bar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#34d399" /><stop offset="1" stopColor="#22d3ee" /></linearGradient></defs>
       {cells.map((c, i) => {
         const h = c.minutes ? Math.max(4, (c.minutes / max) * H) : 2;
         return (
           <g key={c.key}>
-            <rect x={i * (bw + gap)} y={H - h} width={bw} height={h} rx={Math.min(5, bw / 2)} fill={c.minutes ? 'url(#bar)' : 'rgba(255,255,255,.08)'} opacity={c.today || c.minutes ? 1 : 0.6} />
-            {count <= 14 && <text x={i * (bw + gap) + bw / 2} y={H + 13} textAnchor="middle" fontSize="9" fill={c.today ? '#fff' : 'rgba(255,255,255,.35)'}>{c.label}</text>}
+            <rect x={i * (bw + gap)} y={H - h + pad} width={bw} height={h} rx={Math.min(5, bw / 2)} fill={c.minutes ? 'url(#bar)' : 'rgba(255,255,255,.08)'} opacity={c.today || c.minutes ? 1 : 0.6} />
+            {c.minutes > 0 && pad > 0 && <text x={i * (bw + gap) + bw / 2} y={H - h + pad - 4} textAnchor="middle" fontSize="10" fontWeight="600" fill="rgba(255,255,255,.8)">{short(c.minutes)}</text>}
+            {count <= 14 && <text x={i * (bw + gap) + bw / 2} y={H + 13 + pad} textAnchor="middle" fontSize="9" fill={c.today ? '#fff' : 'rgba(255,255,255,.35)'}>{c.label}</text>}
             <title>{`${c.key}: ${dur(c.minutes)}`}</title>
           </g>
         );
