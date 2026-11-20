@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Swords, Copy, Crown, Plus, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Coin, Sheet, toast, input } from '../components/ui';
-import { DailyBars } from '../components/Charts';
+import { DayChart } from '../components/Charts';
 import PlayerBody, { lastDays } from '../components/PlayerBody';
 import { GroveBody } from '../components/FriendGrove';
 import { syncSessions } from '../lib/sync';
@@ -90,7 +90,7 @@ function BoardBody({ period, setPeriod, onPick }) {
               <div><div className="text-[11px] font-semibold uppercase tracking-[.2em] text-emerald-300">Your focus</div><div className="tnum mt-1 text-3xl font-semibold tracking-tighter">{dur(data.daily.reduce((a, d) => a + d.minutes, 0))}</div></div>
               {data.me ? <div className="text-right text-sm text-white/55">Rank <b className="tnum text-white">#{data.me.rank}</b><br />{data.me.plants} plant{data.me.plants === 1 ? '' : 's'}</div> : <div className="text-right text-xs text-white/40">Finish a session<br />to join the board</div>}
             </div>
-            <div className="mt-3"><DailyBars days={data.daily} count={n} /></div>
+            <div className="mt-3"><DayChart days={data.daily} count={n} /></div>
           </div>
           {data.top.length > 0 && (
             <div className="glass anim-rise space-y-4 rounded-3xl p-4" style={{ animationDelay: '.05s' }}>

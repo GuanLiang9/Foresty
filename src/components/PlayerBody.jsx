@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Trees } from 'lucide-react';
-import { DailyBars } from './Charts';
+import { DayChart } from './Charts';
 import { api } from '../lib/api';
 import { recall, remember } from '../lib/cache';
 import { dur } from '../lib/util';
@@ -42,19 +42,9 @@ export default function PlayerBody({ uid, win, onGrove }) {
         <div className="pb-1 text-right"><div className="tnum text-xl font-semibold text-emerald-300">{d.plants}</div><div className="text-[11px] text-white/40">plant{d.plants === 1 ? '' : 's'}</div></div>
       </div>
       <div className="glass rounded-3xl p-4">
-        <div className="mb-3 text-xs font-medium text-white/50">Focus per day</div>
-        <DailyBars days={d.daily} count={spanDays(from, to)} start={from} />
+        <div className="mb-3 text-xs font-medium text-white/50">Tap a bar to see that day</div>
+        <DayChart days={d.daily} count={spanDays(from, to)} start={from} />
       </div>
-      {d.daily.some((x) => x.minutes > 0) && (
-        <ul className="divide-y divide-white/5 rounded-3xl bg-white/[.03] px-4">
-          {[...d.daily].filter((x) => x.minutes > 0).reverse().map((x) => (
-            <li key={x.day} className="flex items-center justify-between py-2.5 text-sm">
-              <span className="text-white/60">{new Date(`${x.day}T12:00:00`).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-              <span className="tnum font-medium">{dur(x.minutes)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
       {d.minutes === 0 && <p className="text-center text-sm text-white/45">Nothing finished in this period yet.</p>}
       {d.canGrove
         ? <button onClick={onGrove} className="cta flex h-12 w-full items-center justify-center gap-2 rounded-full font-semibold"><Trees size={18} />View grove</button>
