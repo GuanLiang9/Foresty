@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Swords, Copy, Crown, Plus, Globe, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Coin, Sheet, toast, input } from '../components/ui';
-import { DailyBars, RaceBars } from '../components/Charts';
+import { DailyBars } from '../components/Charts';
 import PlayerBody, { lastDays } from '../components/PlayerBody';
 import { GroveBody } from '../components/FriendGrove';
 import { syncSessions } from '../lib/sync';
@@ -54,7 +54,7 @@ function StandingsList({ rows, onPick, ended }) {
         <li key={r.uid}>
           <button onClick={() => onPick(r)} className={`press flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left ${r.me ? 'bg-emerald-400/15 ring-1 ring-emerald-300/30' : 'bg-white/[.04]'}`}>
             <span className={`tnum w-6 text-center text-sm font-semibold ${r.rank <= 3 ? 'text-amber-300' : 'text-white/40'}`}>{r.rank}</span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.name}{r.me && <span className="text-emerald-300"> · you</span>}<span className="block text-[11px] font-normal text-white/40">{r.plants} plant{r.plants === 1 ? '' : 's'}{r.rank > 1 && top > r.minutes ? ` · −${dur(top - r.minutes)}` : ''}</span></span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.name}{r.me && <span className="text-emerald-300"> · you</span>}<span className="block text-[11px] font-normal text-white/40">{r.plants} plant{r.plants === 1 ? '' : 's'}{r.rank > 1 && top > r.minutes ? ` · −${dur(top - r.minutes)}` : ''}</span><span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-white/[.08]"><span className="block h-full rounded-full" style={{ width: `${Math.max(r.minutes ? 3 : 0, (r.minutes / Math.max(1, top)) * 100)}%`, background: r.me ? 'linear-gradient(90deg,#34d399,#22d3ee)' : 'rgba(255,255,255,.35)' }} /></span></span>
             {ended && r.leader && <Crown size={15} className="text-amber-300" />}
             <span className="tnum text-sm">{dur(r.minutes)}</span>
             <ChevronRight size={15} className="text-white/25" />
@@ -95,7 +95,6 @@ function BoardBody({ period, setPeriod, onPick }) {
           {data.top.length > 0 && (
             <div className="glass anim-rise space-y-4 rounded-3xl p-4" style={{ animationDelay: '.05s' }}>
               <div className="text-[11px] font-semibold uppercase tracking-[.2em] text-white/45">Top growers</div>
-              <RaceBars rows={data.top.slice(0, 5)} />
               <StandingsList rows={data.top} onPick={(r) => onPick(r, lastDays(n))} />
               {data.me && !data.top.some((r) => r.me) && <p className="tnum text-center text-sm text-white/55">You are #{data.me.rank} with {dur(data.me.minutes)}</p>}
               <p className="text-center text-xs text-white/35">Tap a player to see their focus per day</p>
@@ -140,7 +139,6 @@ function RaceBody({ id, onPick, onChange }) {
           <Copy size={18} className="text-white/50" />
         </button>
       )}
-      <RaceBars rows={d.standings} />
       <StandingsList rows={d.standings} ended={c.ended} onPick={(r) => onPick(r, win)} />
       {c.ended && c.won && !c.claimed && <button disabled={busy} onClick={claim} className="cta h-12 w-full rounded-full font-semibold disabled:opacity-50">Claim {c.reward} coins</button>}
       {c.ended && c.won && c.claimed && <p className="text-center text-sm text-emerald-300">Reward claimed. Well played!</p>}
