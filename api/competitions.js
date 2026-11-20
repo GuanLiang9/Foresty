@@ -8,12 +8,12 @@
 //
 // Standings are worked out from focus_sessions, so nothing extra has to be uploaded:
 // every finished session that ended inside the race window counts.
-import { randomInt } from 'node:crypto';
 import { getSql } from '../server/db.js';
 import { cors } from '../server/cors.js';
 import { getUser } from '../server/auth.js';
 import { ensureSchema } from '../server/schema.js';
 import { upsertProfile } from '../server/profiles.js';
+import { newCode, cleanCode } from '../server/codes.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const MAX_MEMBERS = 50;
@@ -21,10 +21,6 @@ const MAX_ACTIVE_CREATED = 10;
 
 // Longer races pay more, but less per day: 1 day 100, 1 week 430, 1 month 1280 coins.
 export const rewardFor = (days) => Math.round((100 * days ** 0.75) / 10) * 10;
-
-// No 0/O or 1/I/L, so codes are easy to read out loud.
-const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const newCode = () => Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join('');
 
 // Everyone's focus time inside each race's window, for the races with these ids.
 // Works for one race or many at once, so the race list needs one query instead of one per race.
@@ -46,7 +42,7 @@ function rankRows(rows, meId) {
   return rows.map((r, i) => {
     if (r.seconds !== prev) { rank = i + 1; prev = r.seconds; }
     // Winners: everyone tied for first, and only if they focused at all.
-    return { rank, name: r.display_name, minutes: Math.floor(r.seconds / 60), plants: r.plants, me: r.user_id === meId, leader: top > 0 && r.seconds === top };
+    return { rank, uid: r.user_id, name: r.display_name, minutes: Math.floor(r.seconds / 60), plants: r.plants, me: r.user_id === meId, leader: top > 0 && r.seconds === top };
   });
 }
 
@@ -137,7 +133,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST' && op === 'join') {
-      const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const code = cleanCode(body.code);
       const [c] = code ? await sql`select * from competitions where code = ${code}` : [];
       if (!c) return res.status(404).json({ error: 'No race with that code' });
       if (new Date(c.ends_at).getTime() <= Date.now()) return res.status(400).json({ error: 'That race has already finished' });

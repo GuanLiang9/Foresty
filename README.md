@@ -79,6 +79,17 @@ An empty side can never wipe a full one. Signing into a *different* account on a
 `npm test` runs the merge rules. `npm run test:e2e` drives two simulated devices in Chromium (sign-up with local data, fresh sign-in, offline then online, simultaneous edits, leaderboard dedupe, account switch) against an in-memory Postgres, with no secrets.
 
 
+## Friends
+
+Ranks tab, **Friends** view (needs an account).
+
+- Share your 8-character friend code, or enter someone else's. Requests must be accepted; if you both ask, you are friends at once.
+- Tap a friend to open their grove: day / week / month focus hours, grown vs withered plants, and their isometric island.
+- In **Races**, tap any player in the standings to see their grove for the race window. A progress bar shows how much of the race has passed, and each row shows the gap to the leader.
+- Only friends and race mates can view a grove (`server/access.js`). Notes and tags are never sent. Groves come from the synced `game_state`, so they need cloud sync to have run on that player's device.
+
+API: `api/friends.js` (`me`, `list`, `request`, `accept`, `remove`, `grove`). New tables `friendships` and `profiles.friend_code` are created by `ensureSchema()`.
+
 ## Put it on your phone
 
 Installing a PWA needs HTTPS, so host the build. The included workflow deploys to GitHub Pages on every push to `main`:
