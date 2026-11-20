@@ -13,11 +13,11 @@ const KINDS = ['day', 'week', 'month'];
 
 // Read-only view of another player's grove. `fixed` = { a, b, label } pins the window (used by races);
 // otherwise the viewer can flip between day / week / month.
-export default function FriendGrove({ who, onClose, fixed }) {
+export function GroveBody({ uid, fixed }) {
   const [kind, setKind] = useState('week'), [off, setOff] = useState(0), [sel, setSel] = useState(null);
   const [data, setData] = useState(null), [err, setErr] = useState('');
   const range = useMemo(() => (fixed ? { a: fixed.a, b: fixed.b, label: fixed.label } : periodRange(kind, off)), [fixed, kind, off]);
-  const { a, b, label } = range, uid = who?.uid;
+  const { a, b, label } = range;
   const key = `grove:${uid}:${a}:${b}`;
 
   useEffect(() => { setKind('week'); setOff(0); setSel(null); }, [uid]);
@@ -36,7 +36,7 @@ export default function FriendGrove({ who, onClose, fixed }) {
   const picked = list.find((x) => x.id === sel);
 
   return (
-    <Sheet open={!!who} onClose={onClose} title={`${who?.name || ''}'s grove`}>
+    <>
       {!fixed && (
         <>
           <div className="grid grid-cols-3 rounded-full bg-white/[.06] p-1 text-sm font-medium">
@@ -90,6 +90,14 @@ export default function FriendGrove({ who, onClose, fixed }) {
           )}
         </div>
       )}
+    </>
+  );
+}
+
+export default function FriendGrove({ who, onClose, fixed }) {
+  return (
+    <Sheet open={!!who} onClose={onClose} title={`${who?.name || ''}'s grove`}>
+      <GroveBody uid={who?.uid} fixed={fixed} />
     </Sheet>
   );
 }
