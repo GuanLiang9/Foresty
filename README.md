@@ -55,9 +55,9 @@ The app at `https://guanliang9.github.io/Foresty/` calls the API on Vercel; `ser
 
 Limits: the app can't fully prove a session was honest, since a determined player could craft fake requests within those limits. Fine for friends; for a public leaderboard, sessions would need to be timed on the server.
 
-**Competitions** (`api/competitions.js`): from Ranks → Races, anyone signed in can start a race lasting 1, 3, 7, 14 or 30 days. The creator gets a 6-character invite code to share; friends join with it (up to 50 players). Standings are the total focus time of every finished session that ended inside the race window. When the timer runs out, whoever has the most focus time (ties share the win, and nobody wins if nobody focused) can claim the prize once: 100 coins for a day, 430 for a week, 1280 for a month. The server marks the prize as claimed, so it can't be collected twice, and the app adds the coins to the grove.
+**Competitions** (`api/competitions.js`): from Ranks → Compete, anyone signed in can start a race lasting 1, 3, 7, 14 or 30 days. The creator gets a 6-character invite code to share; friends join with it (up to 50 players). Standings are the total focus time of every finished session that ended inside the race window. When the timer runs out, whoever has the most focus time (ties share the win, and nobody wins if nobody focused) can claim the prize once: 100 coins for a day, 430 for a week, 1280 for a month. The server marks the prize as claimed, so it can't be collected twice, and the app adds the coins to the grove.
 
-Tables: `profiles`, `focus_sessions`, `competitions`, `competition_members`, `game_state` (all created automatically, no migration to run).
+Tables: `profiles` (with `friend_code`), `focus_sessions`, `competitions`, `competition_members`, `game_state`, `friendships` (all created automatically, no migration to run).
 
 ### Cloud sync (same grove on phone and browser)
 
@@ -79,24 +79,33 @@ An empty side can never wipe a full one. Signing into a *different* account on a
 `npm test` runs the merge rules. `npm run test:e2e` drives two simulated devices in Chromium (sign-up with local data, fresh sign-in, offline then online, simultaneous edits, leaderboard dedupe, account switch) against an in-memory Postgres, with no secrets.
 
 
-## Compete
+## Compete and friends
 
-Ranks tab, **Compete** view. The global leaderboard is a pinned **Everyone** card above your races; both open the same standings sheet.
+Everything social lives in the **Ranks** tab and needs an account. Playing solo works exactly as before.
 
-- Tap any player, in Everyone or a race, to see their focus per day. Groves open from there only for friends and race mates.
-- Races show a progress bar and each player's gap to the leader.
-- API: `GET /api/leaderboard?uid&from&to&tz` returns one player's daily minutes (window up to 31 days, sign-in required).
+**Compete**
+- A pinned **Everyone** card (the last 7 days, or 30) sits above your races. Races and Everyone open the same standings sheet: rank, plants, the gap to the leader and a bar per player.
+- Tap any player to see their focus per day. Tap a bar to see that day's date and hours; it opens on their latest day with focus. Race players are shown over the race window.
+- **View grove** appears for friends and race mates only. Anyone else on the board gets the daily graph but no grove.
+- Back steps from grove to graph to standings. It is one sheet, so the phone's back button closes it cleanly.
+- Start a race (1 to 30 days), or join one with its 6-character invite code. Races show a progress bar, and the winner claims the prize once it ends.
 
-## Friends
+**Friends**
+- Share your 8-character friend code, or enter someone else's. Requests must be accepted; if you both ask, you become friends at once.
+- Friends are compared on a this-week bar list. Tap one to open their grove: day / week / month focus hours, grown vs withered plants and their isometric island.
 
-Ranks tab, **Friends** view (needs an account).
+**Privacy**: only accepted friends and race mates can open a grove (`server/access.js`). Notes and tags are never sent. Groves come from the synced `game_state`, so they appear once cloud sync has run on that player's device. Daily graphs use `focus_sessions`, which only keeps recent sessions (about the last 8 days), so older days in a 30-day view are empty.
 
-- Share your 8-character friend code, or enter someone else's. Requests must be accepted; if you both ask, you are friends at once.
-- Tap a friend to open their grove: day / week / month focus hours, grown vs withered plants, and their isometric island.
-- In **Compete**, open a race, tap a player, then **View grove** to see their grove for the race window.
-- Only friends and race mates can view a grove (`server/access.js`). Notes and tags are never sent. Groves come from the synced `game_state`, so they need cloud sync to have run on that player's device.
+**API** (all need sign-in, all in `api/`):
 
-API: `api/friends.js` (`me`, `list`, `request`, `accept`, `remove`, `grove`). New tables `friendships` and `profiles.friend_code` are created by `ensureSchema()`.
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/leaderboard?period=week\|month` | Top 50 plus your own rank, and your daily minutes |
+| `GET /api/leaderboard?uid&from&to&tz` | One player's minutes per day (window up to 31 days) and whether you may open their grove |
+| `GET/POST /api/competitions?op=list\|get\|create\|join\|claim` | Races |
+| `GET/POST /api/friends?op=me\|list\|request\|accept\|remove\|grove` | Friend codes, requests, and a friend's or race mate's grove |
+
+`tests/api.test.mjs` and `tests/friends.test.mjs` cover these on an in-memory Postgres (`npm test`).
 
 ## Put it on your phone
 
@@ -121,6 +130,8 @@ Installing a PWA needs HTTPS, so host the build. The included workflow deploys t
 | Habit loop | Daily streak with purchasable streak shields, daily goal, three rotating daily quests, 22 milestones, levels, a savings goal that tracks coins toward a chosen plant |
 | Grove | Day / week / month / year islands, focus totals, time-of-day chart, tag breakdown, session timeline |
 | Sound | Eight mixable ambient layers synthesised with Web Audio; three free, five unlocked with coins |
+| Social | Sign in to join the leaderboard, race friends and add friends by code. Tap a player for their daily focus, and open the grove of friends and race mates. See Compete and friends above |
+| Sync | Signed-in players get the same grove on phone and browser (cloud sync) |
 | Extras | Break timer, completion notifications, JSON backup and restore |
 
 ## Soulmate pair
@@ -159,4 +170,4 @@ An exclusive plant you already own pays 300 coins instead.
 
 ## Stack
 
-React 18, Vite, Tailwind CSS 3, lucide-react. No runtime dependencies beyond those. Icons are generated by `npm run icons`.
+Frontend: React 18, Vite, Tailwind CSS 3, lucide-react. Backend: Vercel serverless functions, Neon Postgres (`@neondatabase/serverless`), Neon Auth, `jose`. Tests: `node --test` with PGlite (in-memory Postgres). Icons are generated by `npm run icons`.
